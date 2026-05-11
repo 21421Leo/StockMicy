@@ -4,142 +4,176 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Micy Stock</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#0b0b0d; --surf:#141416; --surf2:#1c1c1f; --surf3:#242428;
-  --border:#2c2c30; --orange:#f5a623; --orange2:#e8940f;
-  --green:#2ecc71; --green-bg:rgba(46,204,113,.13);
-  --red:#e74c3c; --red-bg:rgba(231,76,60,.13);
-  --blue:#3498db; --blue-bg:rgba(52,152,219,.13);
-  --yellow-bg:rgba(245,166,35,.13);
-  --text:#efefef; --muted:#5a5a60; --muted2:#909098;
-  --radius:14px; --radius-sm:10px;
+  --bg: #f4f4f0;
+  --surf: #ffffff;
+  --surf2: #f0efeb;
+  --surf3: #e8e7e2;
+  --border: #ddddd8;
+  --orange: #d4820a;
+  --orange-light: #fff3dc;
+  --orange-btn: #e8940f;
+  --green: #1a7a3e;
+  --green-bg: #e8f5ee;
+  --red: #c0392b;
+  --red-bg: #fdecea;
+  --blue: #1a5fa8;
+  --blue-bg: #e8f0fb;
+  --text: #1a1a1a;
+  --text2: #444;
+  --muted: #888;
+  --muted2: #aaa;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --max-w: 680px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
 }
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh;overscroll-behavior:none}
-input,select,textarea{font-family:'Barlow',sans-serif}
-.hide{display:none!important}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { background:var(--bg); color:var(--text); font-family:'Barlow',sans-serif; min-height:100vh; overscroll-behavior:none; }
+input,select,textarea { font-family:'Barlow',sans-serif; }
+.hide { display:none!important; }
 
 /* ── LOGIN ── */
-#login-screen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
-.logo{font-family:'Barlow Condensed',sans-serif;font-size:3.5rem;font-weight:900;color:var(--orange);letter-spacing:3px;text-align:center}
-.logo-sub{font-size:.75rem;color:var(--muted2);letter-spacing:3px;text-transform:uppercase;margin-top:4px;text-align:center;margin-bottom:48px}
-.login-box{width:100%;max-width:300px}
-.field-label{font-size:.72rem;color:var(--muted2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-.field-input{width:100%;background:var(--surf2);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 18px;color:var(--text);font-size:1.1rem;outline:none;-webkit-appearance:none;text-align:center;letter-spacing:3px}
-.field-input:focus{border-color:var(--orange)}
-.login-btn{width:100%;margin-top:14px;background:var(--orange);border:none;border-radius:var(--radius);padding:16px;font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:800;color:#000;letter-spacing:2px;cursor:pointer;-webkit-appearance:none}
-.login-btn:active{transform:scale(.97);background:var(--orange2)}
-.login-err{color:var(--red);font-size:.82rem;text-align:center;margin-top:10px;min-height:18px}
+#login-screen { position:fixed; inset:0; background:var(--bg); z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; }
+.logo { font-family:'Barlow Condensed',sans-serif; font-size:3rem; font-weight:900; color:var(--orange); letter-spacing:3px; text-align:center; }
+.logo-sub { font-size:.72rem; color:var(--muted); letter-spacing:3px; text-transform:uppercase; margin-top:3px; text-align:center; margin-bottom:40px; }
+.login-box { width:100%; max-width:300px; }
+.field-label { font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; font-weight:600; }
+.field-input { width:100%; background:var(--surf); border:1.5px solid var(--border); border-radius:var(--radius); padding:13px 16px; color:var(--text); font-size:1.05rem; outline:none; -webkit-appearance:none; text-align:center; letter-spacing:3px; box-shadow:var(--shadow); }
+.field-input:focus { border-color:var(--orange); }
+.login-btn { width:100%; margin-top:12px; background:var(--orange-btn); border:none; border-radius:var(--radius); padding:15px; font-family:'Barlow Condensed',sans-serif; font-size:1.2rem; font-weight:800; color:#fff; letter-spacing:2px; cursor:pointer; -webkit-appearance:none; box-shadow:0 2px 8px rgba(232,148,15,.3); }
+.login-btn:active { transform:scale(.97); }
+.login-err { color:var(--red); font-size:.82rem; text-align:center; margin-top:10px; min-height:18px; }
+
+/* ── LAYOUT ── */
+.app-wrap { max-width:var(--max-w); margin:0 auto; }
 
 /* ── HEADER ── */
-header{background:var(--surf);border-bottom:1px solid var(--border);padding:12px 14px;position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between}
-.h-logo{font-family:'Barlow Condensed',sans-serif;font-size:1.55rem;font-weight:900;color:var(--orange);letter-spacing:2px}
-.h-actions{display:flex;gap:8px}
-.icon-btn{background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--muted2);font-size:.82rem;cursor:pointer;-webkit-appearance:none;font-family:'Barlow',sans-serif;white-space:nowrap}
-.icon-btn:active{border-color:var(--orange);color:var(--orange)}
-.icon-btn.primary{background:var(--orange);border-color:var(--orange);color:#000;font-weight:700}
-.icon-btn.primary:active{background:var(--orange2)}
+header { background:var(--surf); border-bottom:1px solid var(--border); padding:13px 16px; position:sticky; top:0; z-index:50; box-shadow:var(--shadow); }
+.header-inner { max-width:var(--max-w); margin:0 auto; display:flex; align-items:center; justify-content:space-between; }
+.h-logo { font-family:'Barlow Condensed',sans-serif; font-size:1.5rem; font-weight:900; color:var(--orange); letter-spacing:2px; }
+.h-actions { display:flex; gap:8px; }
+.icon-btn { background:var(--surf2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:7px 13px; color:var(--text2); font-size:.82rem; cursor:pointer; -webkit-appearance:none; font-family:'Barlow',sans-serif; font-weight:500; }
+.icon-btn:active { background:var(--surf3); }
+.icon-btn.primary { background:var(--orange-btn); border-color:var(--orange-btn); color:#fff; font-weight:600; box-shadow:0 2px 6px rgba(232,148,15,.25); }
+.icon-btn.primary:active { opacity:.9; }
 
 /* ── TABS ── */
-.tabs{background:var(--surf);border-bottom:1px solid var(--border);display:flex;position:sticky;top:52px;z-index:49}
-.tab{flex:1;padding:11px 6px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.5px;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;transition:.15s}
-.tab.active{color:var(--orange);border-bottom-color:var(--orange)}
+.tabs { background:var(--surf); border-bottom:1px solid var(--border); display:flex; position:sticky; top:52px; z-index:49; }
+.tabs-inner { max-width:var(--max-w); margin:0 auto; display:flex; width:100%; }
+.tab { flex:1; padding:11px 6px; text-align:center; font-family:'Barlow Condensed',sans-serif; font-size:1rem; font-weight:700; letter-spacing:.5px; color:var(--muted); cursor:pointer; border-bottom:2.5px solid transparent; transition:.15s; }
+.tab.active { color:var(--orange); border-bottom-color:var(--orange); }
 
 /* ── PAGES ── */
-.page{display:none;padding:12px 12px 90px}
-.page.active{display:block}
+.page { display:none; }
+.page.active { display:block; }
+.page-inner { max-width:var(--max-w); margin:0 auto; padding:14px 14px 90px; }
 
 /* ── STATS ── */
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:13px}
-.sc{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:9px 8px}
-.sc .sv{font-family:'Barlow Condensed',sans-serif;font-size:1.35rem;font-weight:800;color:var(--orange)}
-.sc .sl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:1px}
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:14px; }
+.sc { background:var(--surf); border:1px solid var(--border); border-radius:var(--radius); padding:10px 10px; box-shadow:var(--shadow); }
+.sc .sv { font-family:'Barlow Condensed',sans-serif; font-size:1.5rem; font-weight:800; color:var(--orange); }
+.sc .sl { font-size:.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-top:1px; font-weight:600; }
 
 /* ── FILTERS ── */
-.filter-bar{display:flex;gap:7px;margin-bottom:11px;overflow-x:auto;padding-bottom:2px}
-.filter-bar::-webkit-scrollbar{display:none}
-.chip{background:var(--surf2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:.78rem;color:var(--muted2);white-space:nowrap;cursor:pointer;flex-shrink:0}
-.chip.active{background:var(--yellow-bg);border-color:var(--orange);color:var(--orange);font-weight:600}
-.chip.c-crist.active{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+.filter-bar { display:flex; gap:7px; margin-bottom:11px; overflow-x:auto; padding-bottom:2px; }
+.filter-bar::-webkit-scrollbar { display:none; }
+.chip { background:var(--surf); border:1.5px solid var(--border); border-radius:20px; padding:6px 13px; font-size:.78rem; color:var(--text2); white-space:nowrap; cursor:pointer; flex-shrink:0; font-weight:500; }
+.chip.active { background:var(--orange-light); border-color:var(--orange); color:var(--orange); font-weight:700; }
+.chip.c-crist.active { background:var(--blue-bg); border-color:var(--blue); color:var(--blue); }
 
 /* ── SEARCH ── */
-.search-wrap{position:relative;margin-bottom:12px}
-.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
-.search-input{width:100%;background:var(--surf2);border:1.5px solid var(--border);border-radius:var(--radius);padding:11px 12px 11px 34px;color:var(--text);font-size:.92rem;outline:none;-webkit-appearance:none}
-.search-input:focus{border-color:var(--orange)}
+.search-wrap { position:relative; margin-bottom:13px; }
+.search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; font-size:.9rem; }
+.search-input { width:100%; background:var(--surf); border:1.5px solid var(--border); border-radius:var(--radius); padding:11px 12px 11px 34px; color:var(--text); font-size:.92rem; outline:none; -webkit-appearance:none; box-shadow:var(--shadow); }
+.search-input:focus { border-color:var(--orange); }
 
 /* ── MACHINE CARD ── */
-.mcard{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:9px;overflow:hidden;animation:fadeUp .2s ease both}
-.mcard.cristiano-card{border-color:rgba(52,152,219,.35)}
-@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-.mcard-head{padding:12px 13px 7px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-.mcard-name{font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:800;letter-spacing:.3px;line-height:1.1}
-.mcard-meta{font-size:.72rem;color:var(--muted2);margin-top:2px}
-.badge{border-radius:20px;padding:3px 10px;font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0}
-.badge.disp{background:var(--green-bg);color:var(--green)}
-.badge.vend{background:var(--red-bg);color:var(--red)}
-.badge.crist{background:var(--blue-bg);color:var(--blue)}
-.mcard-stats{padding:0 13px 11px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-.ms{background:var(--surf2);border-radius:8px;padding:7px 8px}
-.ms-l{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
-.ms-v{font-size:.9rem;font-weight:600;color:var(--text);margin-top:2px}
-.ms-v.acc{color:var(--orange)}
-.mcard-footer{padding:0 13px 9px;display:flex;gap:7px;flex-wrap:wrap;align-items:center}
-.mcard-note{font-size:.73rem;color:var(--muted2);background:var(--surf2);border-radius:6px;padding:3px 8px}
-.foto-link{display:inline-flex;align-items:center;gap:4px;font-size:.73rem;color:var(--orange);text-decoration:none;background:var(--yellow-bg);border-radius:7px;padding:4px 9px}
-.mcard-actions{padding:0 13px 11px;display:flex;gap:7px}
-.act-btn{flex:1;background:var(--surf3);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:.78rem;color:var(--muted2);cursor:pointer;text-align:center;font-family:'Barlow',sans-serif;-webkit-appearance:none}
-.act-btn:active{border-color:var(--orange);color:var(--orange)}
-.act-btn.danger:active{border-color:var(--red);color:var(--red)}
+.mcard { background:var(--surf); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:8px; overflow:hidden; box-shadow:var(--shadow); animation:fadeUp .2s ease both; }
+.mcard.cristiano-card { border-left:3px solid var(--blue); }
+.mcard.vend-card { border-left:3px solid var(--red); }
+@keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+
+.mcard-head { padding:12px 14px 0; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.mcard-name { font-family:'Barlow Condensed',sans-serif; font-size:1.15rem; font-weight:800; letter-spacing:.2px; color:var(--text); line-height:1.1; }
+.mcard-meta { font-size:.72rem; color:var(--muted); margin-top:2px; font-weight:500; }
+
+.badge { border-radius:20px; padding:3px 10px; font-size:.68rem; font-weight:700; white-space:nowrap; flex-shrink:0; }
+.badge.disp { background:var(--green-bg); color:var(--green); }
+.badge.vend { background:var(--red-bg); color:var(--red); }
+.badge.crist { background:var(--blue-bg); color:var(--blue); }
+
+.mcard-stats { padding:10px 14px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+.ms { background:var(--surf2); border-radius:6px; padding:7px 9px; }
+.ms-l { font-size:.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; font-weight:600; }
+.ms-v { font-size:.9rem; font-weight:700; color:var(--text); margin-top:2px; }
+.ms-v.acc { color:var(--orange); }
+
+.mcard-footer { padding:0 14px 8px; display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
+.mcard-note { font-size:.73rem; color:var(--text2); background:var(--surf2); border-radius:5px; padding:3px 8px; }
+.foto-link { display:inline-flex; align-items:center; gap:4px; font-size:.73rem; color:var(--blue); text-decoration:none; background:var(--blue-bg); border-radius:6px; padding:3px 9px; font-weight:600; }
+
+.mcard-actions { padding:0 14px 12px; display:flex; gap:7px; }
+.act-btn { flex:1; background:var(--surf2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px; font-size:.78rem; color:var(--text2); cursor:pointer; text-align:center; font-family:'Barlow',sans-serif; -webkit-appearance:none; font-weight:500; }
+.act-btn:active { background:var(--surf3); }
+.act-btn.danger { color:var(--red); }
+.act-btn.danger:active { background:var(--red-bg); }
 
 /* ── PATRIMONIO ── */
-.sec-title{font-family:'Barlow Condensed',sans-serif;font-size:.95rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:2px;margin:14px 0 7px}
-.pat-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:9px}
-.pat-row{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border)}
-.pat-row:last-child{border-bottom:none}
-.pat-row.tot{background:var(--surf2)}
-.pl{font-size:.87rem;color:var(--muted2)}
-.pl.b{color:var(--text);font-weight:600}
-.pv{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700}
-.pv.acc{color:var(--orange)}
-.pat-edit-row{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border)}
-.pat-edit-row:last-child{border-bottom:none}
-.pat-edit-input{background:transparent;border:none;color:var(--orange);font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700;text-align:right;width:80px;outline:none;-webkit-appearance:none}
-.pat-edit-input:focus{border-bottom:1px solid var(--orange)}
-.grand-box{background:linear-gradient(135deg,rgba(245,166,35,.18),rgba(245,166,35,.05));border:1.5px solid rgba(245,166,35,.35);border-radius:var(--radius);padding:15px;display:flex;justify-content:space-between;align-items:center;margin-top:9px}
+.sec-title { font-family:'Barlow Condensed',sans-serif; font-size:.9rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:2px; margin:16px 0 8px; }
+.pat-card { background:var(--surf); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:10px; box-shadow:var(--shadow); }
+.pat-row { display:flex; justify-content:space-between; align-items:center; padding:11px 15px; border-bottom:1px solid var(--border); }
+.pat-row:last-child { border-bottom:none; }
+.pat-row.tot { background:var(--surf2); }
+.pl { font-size:.87rem; color:var(--text2); }
+.pl.b { color:var(--text); font-weight:700; }
+.pv { font-family:'Barlow Condensed',sans-serif; font-size:1.1rem; font-weight:700; color:var(--text); }
+.pv.acc { color:var(--orange); }
+.pat-edit-row { display:flex; justify-content:space-between; align-items:center; padding:10px 15px; border-bottom:1px solid var(--border); }
+.pat-edit-row:last-child { border-bottom:none; }
+.pat-edit-input { background:transparent; border:none; color:var(--orange); font-family:'Barlow Condensed',sans-serif; font-size:1.1rem; font-weight:700; text-align:right; width:80px; outline:none; -webkit-appearance:none; }
+.pat-edit-input:focus { border-bottom:1.5px solid var(--orange); }
+.grand-box { background:linear-gradient(135deg, #fff8ec, #fff3dc); border:1.5px solid #e8b84b; border-radius:var(--radius); padding:16px 18px; display:flex; justify-content:space-between; align-items:center; margin-top:10px; box-shadow:0 2px 8px rgba(232,148,15,.12); }
 
 /* ── MODAL ── */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(4px);z-index:200;align-items:flex-end;justify-content:center}
-.overlay.open{display:flex}
-.modal{background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:93vh;overflow-y:auto;padding:20px 16px 44px}
-.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
-.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:1.45rem;font-weight:800;color:var(--orange);letter-spacing:1px;margin-bottom:16px}
-.form-row{margin-bottom:12px}
-.form-label{font-size:.7rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
-.form-input,.form-select,.form-textarea{width:100%;background:var(--surf2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:11px 12px;color:var(--text);font-size:.95rem;outline:none;-webkit-appearance:none}
-.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--orange)}
-.form-select option{background:var(--surf2)}
-.form-textarea{resize:vertical;min-height:60px}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.modal-actions{display:flex;gap:9px;margin-top:16px}
-.modal-btn{flex:1;border:none;border-radius:var(--radius-sm);padding:14px;font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;letter-spacing:1px;cursor:pointer;-webkit-appearance:none}
-.modal-btn.save{background:var(--orange);color:#000}
-.modal-btn.save:active{background:var(--orange2)}
-.modal-btn.cancel{background:var(--surf2);color:var(--muted2);border:1px solid var(--border)}
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(3px); z-index:200; align-items:flex-end; justify-content:center; }
+.overlay.open { display:flex; }
+.modal { background:var(--surf); border-radius:20px 20px 0 0; width:100%; max-width:500px; max-height:93vh; overflow-y:auto; padding:20px 16px 44px; box-shadow:0 -4px 30px rgba(0,0,0,.15); }
+.modal-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 16px; }
+.modal-title { font-family:'Barlow Condensed',sans-serif; font-size:1.45rem; font-weight:800; color:var(--text); letter-spacing:.5px; margin-bottom:16px; }
+.form-row { margin-bottom:12px; }
+.form-label { font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:5px; font-weight:600; }
+.form-input,.form-select,.form-textarea { width:100%; background:var(--surf2); border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:11px 12px; color:var(--text); font-size:.95rem; outline:none; -webkit-appearance:none; }
+.form-input:focus,.form-select:focus,.form-textarea:focus { border-color:var(--orange); background:var(--surf); }
+.form-select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; }
+.form-textarea { resize:vertical; min-height:60px; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.modal-actions { display:flex; gap:9px; margin-top:16px; }
+.modal-btn { flex:1; border:none; border-radius:var(--radius-sm); padding:14px; font-family:'Barlow Condensed',sans-serif; font-size:1.1rem; font-weight:800; letter-spacing:1px; cursor:pointer; -webkit-appearance:none; }
+.modal-btn.save { background:var(--orange-btn); color:#fff; box-shadow:0 2px 8px rgba(232,148,15,.3); }
+.modal-btn.save:active { opacity:.9; }
+.modal-btn.cancel { background:var(--surf2); color:var(--muted); border:1px solid var(--border); }
 
 /* ── LOADING / EMPTY ── */
-.loading{text-align:center;padding:50px 20px;color:var(--muted2)}
-.spin{display:inline-block;animation:spin .8s linear infinite;font-size:1.6rem;margin-bottom:10px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:.9rem}
+.loading { text-align:center; padding:50px 20px; color:var(--muted); }
+.spin { display:inline-block; animation:spin .8s linear infinite; font-size:1.4rem; margin-bottom:8px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.empty { text-align:center; padding:40px 20px; color:var(--muted); font-size:.9rem; }
 
 /* ── TOAST ── */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surf3);border:1px solid var(--border);border-radius:20px;padding:10px 20px;font-size:.85rem;color:var(--text);z-index:500;transition:.3s;white-space:nowrap;pointer-events:none}
-.toast.show{transform:translateX(-50%) translateY(0)}
-.toast.ok{border-color:var(--green);color:var(--green)}
-.toast.err{border-color:var(--red);color:var(--red)}
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--text); border-radius:20px; padding:10px 20px; font-size:.83rem; color:#fff; z-index:500; transition:.3s; white-space:nowrap; pointer-events:none; box-shadow:0 4px 16px rgba(0,0,0,.2); }
+.toast.show { transform:translateX(-50%) translateY(0); }
+.toast.ok { background:#1a7a3e; }
+.toast.err { background:var(--red); }
+
+/* ── DESKTOP TWEAKS ── */
+@media(min-width:600px) {
+  .stats-row { grid-template-columns:repeat(4,1fr); }
+  .mcard-stats { grid-template-columns:repeat(3,1fr); gap:8px; }
+  .page-inner { padding:20px 20px 60px; }
+}
 </style>
 </head>
 <body>
@@ -159,46 +193,51 @@ header{background:var(--surf);border-bottom:1px solid var(--border);padding:12px
 <!-- APP -->
 <div id="app" class="hide">
   <header>
-    <div class="h-logo">🚜 MICY</div>
-    <div class="h-actions">
-      <button class="icon-btn" onclick="loadData()" id="sync-btn">⟳</button>
-      <button class="icon-btn primary" onclick="openAdd()">+ Aggiungi</button>
+    <div class="header-inner">
+      <div class="h-logo">🚜 MICY</div>
+      <div class="h-actions">
+        <button class="icon-btn" onclick="loadData()" id="sync-btn">⟳ Aggiorna</button>
+        <button class="icon-btn primary" onclick="openAdd()">+ Aggiungi</button>
+      </div>
     </div>
   </header>
   <div class="tabs">
-    <div class="tab active" onclick="switchTab('stock',this)">📋 Stock</div>
-    <div class="tab" onclick="switchTab('patrimonio',this)">💰 Patrimonio</div>
+    <div class="tabs-inner">
+      <div class="tab active" onclick="switchTab('stock',this)">📋 Stock</div>
+      <div class="tab" onclick="switchTab('patrimonio',this)">💰 Patrimonio</div>
+    </div>
   </div>
 
-  <!-- STOCK -->
   <div class="page active" id="page-stock">
-    <div style="height:4px"></div>
-    <div class="stats-row">
-      <div class="sc"><div class="sv" id="s-tot">0</div><div class="sl">Totale</div></div>
-      <div class="sc"><div class="sv" id="s-disp">0</div><div class="sl">Disponib.</div></div>
-      <div class="sc"><div class="sv" id="s-crist">0</div><div class="sl">Cristiano</div></div>
-      <div class="sc"><div class="sv" id="s-vend">0</div><div class="sl">Da incass.</div></div>
+    <div class="page-inner">
+      <div class="stats-row">
+        <div class="sc"><div class="sv" id="s-tot">0</div><div class="sl">Totale</div></div>
+        <div class="sc"><div class="sv" id="s-disp">0</div><div class="sl">Disponib.</div></div>
+        <div class="sc"><div class="sv" id="s-crist">0</div><div class="sl">Cristiano</div></div>
+        <div class="sc"><div class="sv" id="s-vend">0</div><div class="sl">Da incass.</div></div>
+      </div>
+      <div class="filter-bar">
+        <div class="chip active" data-f="tutti" onclick="setFilter(this)">Tutti</div>
+        <div class="chip" data-f="Disponibile" onclick="setFilter(this)">✅ Disponibili</div>
+        <div class="chip c-crist" data-f="Cristiano" onclick="setFilter(this)">🤝 Cristiano</div>
+        <div class="chip" data-f="Venduta - da incassare" onclick="setFilter(this)">🔴 Da incassare</div>
+      </div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="search" placeholder="Cerca modello..." oninput="renderStock()">
+      </div>
+      <div id="stock-list"><div class="loading"><div class="spin">⟳</div><div>Caricamento...</div></div></div>
     </div>
-    <div class="filter-bar">
-      <div class="chip active" data-f="tutti" onclick="setFilter(this)">Tutti</div>
-      <div class="chip" data-f="Disponibile" onclick="setFilter(this)">✅ Disponibili</div>
-      <div class="chip c-crist" data-f="Cristiano" onclick="setFilter(this)">🤝 Cristiano</div>
-      <div class="chip" data-f="Venduta - da incassare" onclick="setFilter(this)">🔴 Da incassare</div>
-    </div>
-    <div class="search-wrap">
-      <span class="search-icon">🔍</span>
-      <input class="search-input" id="search" placeholder="Cerca modello..." oninput="renderStock()">
-    </div>
-    <div id="stock-list"><div class="loading"><div class="spin">⟳</div><div>Caricamento...</div></div></div>
   </div>
 
-  <!-- PATRIMONIO -->
   <div class="page" id="page-patrimonio">
-    <div id="pat-content"><div class="loading"><div class="spin">⟳</div><div>Caricamento...</div></div></div>
+    <div class="page-inner">
+      <div id="pat-content"><div class="loading"><div class="spin">⟳</div><div>Caricamento...</div></div></div>
+    </div>
   </div>
 </div>
 
-<!-- MODAL AGGIUNGI/MODIFICA -->
+<!-- MODAL -->
 <div class="overlay" id="modal-overlay">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -254,14 +293,13 @@ header{background:var(--surf);border-bottom:1px solid var(--border);padding:12px
 
 <script>
 const API_URL  = 'https://api.npoint.io/140c11f8fc8f3b7633e2';
-const PASSWORD = 'micy2024'; // ← cambia qui se vuoi
+const PASSWORD = 'micy2024';
 
 let db = {macchine:[],saldi:[],crediti:[]};
 let editId = null;
 let activeFilter = 'tutti';
 let saving = false;
 
-// ── LOGIN ────────────────────────────────────────────────
 function doLogin() {
   const v = document.getElementById('pwd-input').value;
   if (v === PASSWORD) {
@@ -275,7 +313,6 @@ function doLogin() {
   }
 }
 
-// ── API ──────────────────────────────────────────────────
 async function loadData() {
   const btn = document.getElementById('sync-btn');
   btn.textContent = '...';
@@ -291,73 +328,65 @@ async function loadData() {
     toast('✓ Aggiornato', 'ok');
   } catch(e) {
     toast('❌ Errore connessione', 'err');
-    if (!db.macchine.length) {
-      db.saldi = defaultSaldi(); db.crediti = defaultCrediti(); seedMacchine();
-      renderStock(); renderPat();
-    }
+    if (!db.macchine.length) { db.saldi=defaultSaldi(); db.crediti=defaultCrediti(); seedMacchine(); renderStock(); renderPat(); }
   }
-  btn.textContent = '⟳';
+  btn.textContent = '⟳ Aggiorna';
 }
 
 async function saveData() {
-  const r = await fetch(API_URL, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(db)
-  });
-  if (!r.ok) throw new Error('save fail');
+  const r = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(db) });
+  if (!r.ok) throw new Error();
 }
 
 function defaultSaldi() {
   return [
-    {id:'s1', voce:'VUB Bank (Micy)', val:954},
-    {id:'s2', voce:'BPM (Leone)',      val:11},
-    {id:'s3', voce:'Casa Puglia',      val:83},
-    {id:'s4', voce:'Cash (contanti)',  val:38},
+    {id:'s1',voce:'VUB Bank (Micy)',val:954},
+    {id:'s2',voce:'BPM (Leone)',val:11},
+    {id:'s3',voce:'Casa Puglia',val:83},
+    {id:'s4',voce:'Cash (contanti)',val:38},
   ];
 }
 function defaultCrediti() {
   return [
-    {id:'c1', voce:'Marcoaldi',        val:3},
-    {id:'c2', voce:'Benna 988B',       val:3},
-    {id:'c3', voce:'Cat CS563E KIT',   val:4},
-    {id:'c4', voce:'Carrello Davide',  val:2},
+    {id:'c1',voce:'Marcoaldi',val:3},
+    {id:'c2',voce:'Benna 988B',val:3},
+    {id:'c3',voce:'Cat CS563E KIT',val:4},
+    {id:'c4',voce:'Carrello Davide',val:2},
   ];
 }
 function seedMacchine() {
   db.macchine = [
-    {id:'m1', modello:'Bell B30D',         anno:'',ore:'',acq:48,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m2', modello:'Cat 3026',           anno:'',ore:'',acq:95,   spe:4,   stato:'Venduta - da incassare', note:'',     foto:''},
-    {id:'m3', modello:'Hitachi 470.5B',    anno:'',ore:'',acq:36,   spe:0,   stato:'Venduta - da incassare', note:'Carrara',foto:''},
-    {id:'m4', modello:'Hitachi ZX225USR',  anno:'',ore:'',acq:14,   spe:0,   stato:'Venduta - da incassare', note:'',     foto:''},
-    {id:'m5', modello:'Cat 990',            anno:'',ore:'',acq:9,    spe:0,   stato:'Venduta - da incassare', note:'',     foto:''},
-    {id:'m6', modello:'Cat 988K',           anno:'',ore:'',acq:260,  spe:0,   stato:'Venduta - da incassare', note:'',     foto:''},
-    {id:'m7', modello:'Volvo L120H',        anno:'',ore:'',acq:48,   spe:0,   stato:'Venduta - da incassare', note:'',     foto:''},
-    {id:'m8', modello:'Bell B30E 2020',    anno:'',ore:'',acq:90,   spe:0,   stato:'Venduta - da incassare', note:'',     foto:''},
-    {id:'m9', modello:'Volvo L110E',        anno:'',ore:'',acq:16,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m10',modello:'Volvo EC210F',       anno:'',ore:'',acq:60,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m11',modello:'Cat MH3024',         anno:'',ore:'',acq:79,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m12',modello:'Komatsu PC290',      anno:'',ore:'',acq:18,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m13',modello:'Trazzi 966M',        anno:'',ore:'',acq:60,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m14',modello:'Volvo EC480',        anno:'',ore:'',acq:35,   spe:13,  stato:'Disponibile',           note:'35+10+3',foto:''},
-    {id:'m15',modello:'Volvo L220E',        anno:'',ore:'',acq:15,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m16',modello:'Cat MH3026',         anno:'',ore:'',acq:95,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m17',modello:'Bell B45E',          anno:'',ore:'',acq:120,  spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m18',modello:'Telestack TC421',    anno:'',ore:'',acq:35.5, spe:4.4, stato:'Disponibile',           note:'',     foto:''},
-    {id:'m19',modello:'Fiat FL145',         anno:'',ore:'',acq:5,    spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m20',modello:'Komatsu WA470.6',   anno:'',ore:'',acq:38.5, spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m21',modello:'Cat 966M verde',    anno:'',ore:'',acq:68,   spe:2.5, stato:'Disponibile',           note:'',     foto:''},
-    {id:'m22',modello:'Cat 966M',           anno:'',ore:'',acq:67.5, spe:3.1, stato:'Disponibile',           note:'',     foto:''},
-    {id:'m23',modello:'Bell B30E',          anno:'',ore:'',acq:65,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m24',modello:'Komatsu HD405',      anno:'',ore:'',acq:49,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m25',modello:'Metso',              anno:'',ore:'',acq:76,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m26',modello:'Starsiebe',          anno:'',ore:'',acq:70,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m27',modello:'Hitachi ZW310.6',   anno:'',ore:'',acq:82,   spe:0,   stato:'Disponibile',           note:'',     foto:''},
-    {id:'m28',modello:'Hitachi ZX470.5B',  anno:'',ore:'',acq:50,   spe:0,   stato:'Disponibile',           note:'Siad', foto:''},
+    {id:'m1',modello:'Bell B30D',anno:'',ore:'',acq:48,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m2',modello:'Cat 3026',anno:'',ore:'',acq:95,spe:4,stato:'Venduta - da incassare',note:'',foto:''},
+    {id:'m3',modello:'Hitachi 470.5B',anno:'',ore:'',acq:36,spe:0,stato:'Venduta - da incassare',note:'Carrara',foto:''},
+    {id:'m4',modello:'Hitachi ZX225USR',anno:'',ore:'',acq:14,spe:0,stato:'Venduta - da incassare',note:'',foto:''},
+    {id:'m5',modello:'Cat 990',anno:'',ore:'',acq:9,spe:0,stato:'Venduta - da incassare',note:'',foto:''},
+    {id:'m6',modello:'Cat 988K',anno:'',ore:'',acq:260,spe:0,stato:'Venduta - da incassare',note:'',foto:''},
+    {id:'m7',modello:'Volvo L120H',anno:'',ore:'',acq:48,spe:0,stato:'Venduta - da incassare',note:'',foto:''},
+    {id:'m8',modello:'Bell B30E 2020',anno:'',ore:'',acq:90,spe:0,stato:'Venduta - da incassare',note:'',foto:''},
+    {id:'m9',modello:'Volvo L110E',anno:'',ore:'',acq:16,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m10',modello:'Volvo EC210F',anno:'',ore:'',acq:60,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m11',modello:'Cat MH3024',anno:'',ore:'',acq:79,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m12',modello:'Komatsu PC290',anno:'',ore:'',acq:18,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m13',modello:'Trazzi 966M',anno:'',ore:'',acq:60,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m14',modello:'Volvo EC480',anno:'',ore:'',acq:35,spe:13,stato:'Disponibile',note:'35+10+3',foto:''},
+    {id:'m15',modello:'Volvo L220E',anno:'',ore:'',acq:15,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m16',modello:'Cat MH3026',anno:'',ore:'',acq:95,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m17',modello:'Bell B45E',anno:'',ore:'',acq:120,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m18',modello:'Telestack TC421',anno:'',ore:'',acq:35.5,spe:4.4,stato:'Disponibile',note:'',foto:''},
+    {id:'m19',modello:'Fiat FL145',anno:'',ore:'',acq:5,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m20',modello:'Komatsu WA470.6',anno:'',ore:'',acq:38.5,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m21',modello:'Cat 966M verde',anno:'',ore:'',acq:68,spe:2.5,stato:'Disponibile',note:'',foto:''},
+    {id:'m22',modello:'Cat 966M',anno:'',ore:'',acq:67.5,spe:3.1,stato:'Disponibile',note:'',foto:''},
+    {id:'m23',modello:'Bell B30E',anno:'',ore:'',acq:65,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m24',modello:'Komatsu HD405',anno:'',ore:'',acq:49,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m25',modello:'Metso',anno:'',ore:'',acq:76,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m26',modello:'Starsiebe',anno:'',ore:'',acq:70,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m27',modello:'Hitachi ZW310.6',anno:'',ore:'',acq:82,spe:0,stato:'Disponibile',note:'',foto:''},
+    {id:'m28',modello:'Hitachi ZX470.5B',anno:'',ore:'',acq:50,spe:0,stato:'Disponibile',note:'Siad',foto:''},
   ];
 }
 
-// ── TABS ─────────────────────────────────────────────────
 function switchTab(name, el) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -365,7 +394,6 @@ function switchTab(name, el) {
   document.getElementById('page-'+name).classList.add('active');
 }
 
-// ── FILTERS ──────────────────────────────────────────────
 function setFilter(el) {
   document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
@@ -379,31 +407,29 @@ function fmtK(v) {
   return '€' + n.toLocaleString('it-IT',{minimumFractionDigits:0,maximumFractionDigits:1}) + 'k';
 }
 
-// ── RENDER STOCK ─────────────────────────────────────────
 function renderStock() {
   const q = (document.getElementById('search').value||'').toLowerCase();
   const list = db.macchine.filter(m =>
     (!q || m.modello.toLowerCase().includes(q)) &&
     (activeFilter==='tutti' || m.stato===activeFilter)
   );
-
   document.getElementById('s-tot').textContent   = db.macchine.length;
   document.getElementById('s-disp').textContent  = db.macchine.filter(m=>m.stato==='Disponibile').length;
   document.getElementById('s-crist').textContent = db.macchine.filter(m=>m.stato==='Cristiano').length;
   document.getElementById('s-vend').textContent  = db.macchine.filter(m=>m.stato==='Venduta - da incassare').length;
-
   if (!list.length) {
     document.getElementById('stock-list').innerHTML = `<div class="empty">📭 ${db.macchine.length===0?'Aggiungi la prima macchina!':'Nessun risultato.'}</div>`;
     return;
   }
-
   document.getElementById('stock-list').innerHTML = list.map((m,i) => {
-    const isCrist = m.stato === 'Cristiano';
-    const bc = m.stato==='Disponibile' ? 'disp' : isCrist ? 'crist' : 'vend';
-    const bt = m.stato==='Disponibile' ? '✅ Disponibile' : isCrist ? '🤝 Cristiano' : '🔴 Da incassare';
-    const tot = (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0);
+    const isCrist = m.stato==='Cristiano';
+    const isVend  = m.stato==='Venduta - da incassare';
+    const bc = m.stato==='Disponibile'?'disp':isCrist?'crist':'vend';
+    const bt = m.stato==='Disponibile'?'✅ Disponibile':isCrist?'🤝 Cristiano':'🔴 Da incassare';
+    const tot = (parseFloat(m.acq)||0)+(parseFloat(m.spe)||0);
     const meta = [m.anno, m.ore?(m.ore+' ore'):''].filter(Boolean).join(' · ');
-    return `<div class="mcard${isCrist?' cristiano-card':''}" style="animation-delay:${Math.min(i,8)*.03}s">
+    const cardClass = isCrist?' cristiano-card':isVend?' vend-card':'';
+    return `<div class="mcard${cardClass}" style="animation-delay:${Math.min(i,8)*.03}s">
       <div class="mcard-head">
         <div>
           <div class="mcard-name">${m.modello}</div>
@@ -422,146 +448,107 @@ function renderStock() {
       </div>
       <div class="mcard-actions">
         <button class="act-btn" onclick="openEdit('${m.id}')">✏️ Modifica</button>
-        <button class="act-btn danger" onclick="deleteMacchina('${m.id}')">🗑️ Elimina</button>
+        <button class="act-btn danger" onclick="deleteMacchina('${m.id}')">🗑 Elimina</button>
       </div>
     </div>`;
   }).join('');
 }
 
-// ── RENDER PATRIMONIO ────────────────────────────────────
 function renderPat() {
-  const totS = db.saldi.reduce((s,x)=>s+(parseFloat(x.val)||0), 0);
-  const totC = db.crediti.reduce((s,x)=>s+(parseFloat(x.val)||0), 0);
-  const totM = db.macchine.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0), 0);
-  const grand = totS + totC + totM;
-
-  let html = '<div style="height:4px"></div>';
-
+  const totS = db.saldi.reduce((s,x)=>s+(parseFloat(x.val)||0),0);
+  const totC = db.crediti.reduce((s,x)=>s+(parseFloat(x.val)||0),0);
+  const totM = db.macchine.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0);
+  const grand = totS+totC+totM;
+  let html = '';
   html += '<div class="sec-title">💳 Liquidità</div><div class="pat-card">';
-  db.saldi.forEach(s => {
-    html += `<div class="pat-edit-row">
-      <div class="pl">${s.voce}</div>
-      <div style="display:flex;align-items:center;gap:3px">
-        <span style="color:var(--muted2);font-size:.8rem">€</span>
-        <input class="pat-edit-input" type="number" value="${s.val}" step="0.5" inputmode="decimal" onchange="updateSaldo('${s.id}',this.value)">
-        <span style="color:var(--muted2);font-size:.8rem">k</span>
-      </div>
-    </div>`;
+  db.saldi.forEach(s=>{
+    html+=`<div class="pat-edit-row"><div class="pl">${s.voce}</div><div style="display:flex;align-items:center;gap:3px"><span style="color:var(--muted);font-size:.8rem">€</span><input class="pat-edit-input" type="number" value="${s.val}" step="0.5" inputmode="decimal" onchange="updateSaldo('${s.id}',this.value)"><span style="color:var(--muted);font-size:.8rem">k</span></div></div>`;
   });
-  html += `<div class="pat-row tot"><div class="pl b">Totale Liquidità</div><div class="pv acc">${fmtK(totS)}</div></div></div>`;
-
+  html+=`<div class="pat-row tot"><div class="pl b">Totale Liquidità</div><div class="pv acc">${fmtK(totS)}</div></div></div>`;
   html += '<div class="sec-title">📋 Crediti Vari</div><div class="pat-card">';
-  db.crediti.forEach(c => {
-    html += `<div class="pat-edit-row">
-      <div class="pl">${c.voce}</div>
-      <div style="display:flex;align-items:center;gap:3px">
-        <span style="color:var(--muted2);font-size:.8rem">€</span>
-        <input class="pat-edit-input" type="number" value="${c.val}" step="0.5" inputmode="decimal" onchange="updateCredito('${c.id}',this.value)">
-        <span style="color:var(--muted2);font-size:.8rem">k</span>
-      </div>
-    </div>`;
+  db.crediti.forEach(c=>{
+    html+=`<div class="pat-edit-row"><div class="pl">${c.voce}</div><div style="display:flex;align-items:center;gap:3px"><span style="color:var(--muted);font-size:.8rem">€</span><input class="pat-edit-input" type="number" value="${c.val}" step="0.5" inputmode="decimal" onchange="updateCredito('${c.id}',this.value)"><span style="color:var(--muted);font-size:.8rem">k</span></div></div>`;
   });
-  html += `<div class="pat-row tot"><div class="pl b">Totale Crediti</div><div class="pv acc">${fmtK(totC)}</div></div></div>`;
-
-  html += `<div class="sec-title">🚜 Valore Stock</div>
-  <div class="pat-card"><div class="pat-row">
-    <div class="pl">Totale macchine (${db.macchine.length})</div>
-    <div class="pv acc">${fmtK(totM)}</div>
-  </div></div>`;
-
-  html += `<div class="grand-box">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:var(--orange);letter-spacing:.5px">💎 PATRIMONIO TOTALE</div>
-    <div class="pv acc" style="font-size:1.35rem">${fmtK(grand)}</div>
-  </div>`;
-
+  html+=`<div class="pat-row tot"><div class="pl b">Totale Crediti</div><div class="pv acc">${fmtK(totC)}</div></div></div>`;
+  html+=`<div class="sec-title">🚜 Valore Stock</div><div class="pat-card"><div class="pat-row"><div class="pl">Totale macchine (${db.macchine.length})</div><div class="pv acc">${fmtK(totM)}</div></div></div>`;
+  html+=`<div class="grand-box"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:var(--orange);letter-spacing:.5px">💎 PATRIMONIO TOTALE</div><div class="pv acc" style="font-size:1.4rem">${fmtK(grand)}</div></div>`;
   document.getElementById('pat-content').innerHTML = html;
 }
 
-async function updateSaldo(id, val) {
-  const s = db.saldi.find(x=>x.id===id); if(s) s.val = parseFloat(val)||0;
-  renderPat();
-  try { await saveData(); toast('✓ Salvato','ok'); } catch(e) { toast('❌ Errore','err'); }
+async function updateSaldo(id,val) {
+  const s=db.saldi.find(x=>x.id===id); if(s) s.val=parseFloat(val)||0;
+  renderPat(); try{await saveData();toast('✓ Salvato','ok');}catch(e){toast('❌ Errore','err');}
 }
-async function updateCredito(id, val) {
-  const c = db.crediti.find(x=>x.id===id); if(c) c.val = parseFloat(val)||0;
-  renderPat();
-  try { await saveData(); toast('✓ Salvato','ok'); } catch(e) { toast('❌ Errore','err'); }
+async function updateCredito(id,val) {
+  const c=db.crediti.find(x=>x.id===id); if(c) c.val=parseFloat(val)||0;
+  renderPat(); try{await saveData();toast('✓ Salvato','ok');}catch(e){toast('❌ Errore','err');}
 }
 
-// ── MODAL ────────────────────────────────────────────────
 function openAdd() {
-  editId = null;
-  document.getElementById('modal-title').textContent = '+ Nuova Macchina';
-  ['modello','anno','ore','acq','spe','foto','note'].forEach(f => document.getElementById('f-'+f).value='');
-  document.getElementById('f-stato').value = 'Disponibile';
+  editId=null;
+  document.getElementById('modal-title').textContent='+ Nuova Macchina';
+  ['modello','anno','ore','acq','spe','foto','note'].forEach(f=>document.getElementById('f-'+f).value='');
+  document.getElementById('f-stato').value='Disponibile';
   document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('f-modello').focus(), 150);
+  setTimeout(()=>document.getElementById('f-modello').focus(),150);
 }
-
 function openEdit(id) {
-  const m = db.macchine.find(x=>x.id===id); if(!m) return;
-  editId = id;
-  document.getElementById('modal-title').textContent = '✏️ Modifica';
-  document.getElementById('f-modello').value = m.modello;
-  document.getElementById('f-anno').value    = m.anno||'';
-  document.getElementById('f-ore').value     = m.ore||'';
-  document.getElementById('f-acq').value     = m.acq||'';
-  document.getElementById('f-spe').value     = m.spe||'';
-  document.getElementById('f-stato').value   = m.stato;
-  document.getElementById('f-foto').value    = m.foto||'';
-  document.getElementById('f-note').value    = m.note||'';
+  const m=db.macchine.find(x=>x.id===id); if(!m) return;
+  editId=id;
+  document.getElementById('modal-title').textContent='✏️ Modifica';
+  document.getElementById('f-modello').value=m.modello;
+  document.getElementById('f-anno').value=m.anno||'';
+  document.getElementById('f-ore').value=m.ore||'';
+  document.getElementById('f-acq').value=m.acq||'';
+  document.getElementById('f-spe').value=m.spe||'';
+  document.getElementById('f-stato').value=m.stato;
+  document.getElementById('f-foto').value=m.foto||'';
+  document.getElementById('f-note').value=m.note||'';
   document.getElementById('modal-overlay').classList.add('open');
 }
-
 function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
 
 async function saveMacchina() {
-  if (saving) return;
-  const modello = document.getElementById('f-modello').value.trim();
-  if (!modello) { toast('⚠️ Inserisci il modello','err'); return; }
-  saving = true;
-  const btn = document.getElementById('modal-save-btn');
-  btn.textContent = '...';
-  const data = {
-    id:      editId || 'm'+Date.now(),
-    modello,
-    anno:    document.getElementById('f-anno').value,
-    ore:     document.getElementById('f-ore').value,
-    acq:     parseFloat(document.getElementById('f-acq').value)||0,
-    spe:     parseFloat(document.getElementById('f-spe').value)||0,
-    stato:   document.getElementById('f-stato').value,
-    foto:    document.getElementById('f-foto').value.trim(),
-    note:    document.getElementById('f-note').value.trim(),
+  if(saving) return;
+  const modello=document.getElementById('f-modello').value.trim();
+  if(!modello){toast('⚠️ Inserisci il modello','err');return;}
+  saving=true;
+  const btn=document.getElementById('modal-save-btn');
+  btn.textContent='...';
+  const data={
+    id:editId||'m'+Date.now(), modello,
+    anno:document.getElementById('f-anno').value,
+    ore:document.getElementById('f-ore').value,
+    acq:parseFloat(document.getElementById('f-acq').value)||0,
+    spe:parseFloat(document.getElementById('f-spe').value)||0,
+    stato:document.getElementById('f-stato').value,
+    foto:document.getElementById('f-foto').value.trim(),
+    note:document.getElementById('f-note').value.trim(),
   };
-  if (editId) { const idx=db.macchine.findIndex(x=>x.id===editId); db.macchine[idx]=data; }
+  if(editId){const idx=db.macchine.findIndex(x=>x.id===editId);db.macchine[idx]=data;}
   else db.macchine.unshift(data);
-  try {
-    await saveData();
-    closeModal(); renderStock(); renderPat();
-    toast('✓ Salvato','ok');
-  } catch(e) { toast('❌ Errore salvataggio','err'); }
-  btn.textContent = '💾 SALVA';
-  saving = false;
+  try{await saveData();closeModal();renderStock();renderPat();toast('✓ Salvato','ok');}
+  catch(e){toast('❌ Errore salvataggio','err');}
+  btn.textContent='💾 SALVA';
+  saving=false;
 }
 
 async function deleteMacchina(id) {
-  const m = db.macchine.find(x=>x.id===id); if(!m) return;
-  if (!confirm(`Eliminare "${m.modello}"?`)) return;
-  db.macchine = db.macchine.filter(x=>x.id!==id);
-  try { await saveData(); renderStock(); renderPat(); toast('✓ Eliminato','ok'); }
-  catch(e) { toast('❌ Errore','err'); }
+  const m=db.macchine.find(x=>x.id===id); if(!m) return;
+  if(!confirm(`Eliminare "${m.modello}"?`)) return;
+  db.macchine=db.macchine.filter(x=>x.id!==id);
+  try{await saveData();renderStock();renderPat();toast('✓ Eliminato','ok');}
+  catch(e){toast('❌ Errore','err');}
 }
 
-// ── TOAST ────────────────────────────────────────────────
 let toastTimer;
-function toast(msg, type='') {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.className = 'toast show '+type;
+function toast(msg,type='') {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show '+type;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>el.classList.remove('show'), 2500);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
 }
-
-document.getElementById('modal-overlay').addEventListener('click', e=>{
+document.getElementById('modal-overlay').addEventListener('click',e=>{
   if(e.target===document.getElementById('modal-overlay')) closeModal();
 });
 </script>
