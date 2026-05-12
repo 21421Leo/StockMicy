@@ -520,15 +520,26 @@ function makeEditable(el, m, field, type, onDone) {
   inp.value = cur;
   if(type==='number') inp.inputMode='decimal';
   inp.style.cssText='width:100%;border:none;outline:none;background:transparent;font-size:inherit;font-weight:inherit;color:inherit;padding:0;font-family:Barlow,sans-serif';
-  // clear and insert
   el.innerHTML='';
   el.appendChild(inp);
   inp.focus(); inp.select();
+  let committed = false;
   function commit() {
+    if(committed) return;
+    committed = true;
     let val = inp.value.trim();
     if(type==='number') val = val===''?'':parseFloat(val)||0;
     m[field]=val;
     el.classList.remove('editing');
+    // update display without full re-render
+    const display = field==='ore' && val ? Number(val).toLocaleString('it-IT') : (val||'—');
+    el.textContent = display;
+    // update totale if acq or spe changed
+    if(field==='acq'||field==='spe') updateCardTotale(m);
+    // update listino costo if relevant
+    if(['acq','spe','anno','ore','location'].includes(field)) updateListinoCard(m);
+    // update stats
+    updateStockStats();
     if(onDone) onDone();
     debounceSave();
     maybeSnapshotHistory();
@@ -536,8 +547,40 @@ function makeEditable(el, m, field, type, onDone) {
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',e=>{
     if(e.key==='Enter'){e.preventDefault();inp.blur();}
-    if(e.key==='Escape'){el.classList.remove('editing');if(onDone)onDone();}
+    if(e.key==='Escape'){
+      committed=true;
+      el.classList.remove('editing');
+      const orig = m[field];
+      el.textContent = field==='ore'&&orig?Number(orig).toLocaleString('it-IT'):(orig||'—');
+    }
   });
+}
+
+
+// ── SURGICAL DOM UPDATES ───────────────────────────────
+function updateCardTotale(m) {
+  const card=document.querySelector('#stock-list [data-id="'+m.id+'"]');
+  if(!card) return;
+  const tot=(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0);
+  const totEl=card.querySelectorAll('.sfield')[2];
+  if(totEl) totEl.querySelector('.sf-val').textContent=tot||'—';
+  updateStockStats();
+  renderPat();
+}
+function updateListinoCard(m) {
+  const card=document.querySelector('#listino-list [data-id="'+m.id+'"]');
+  if(!card) return;
+  const tot=(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0);
+  const costEl=card.querySelectorAll('.lfield')[3];
+  if(costEl) costEl.querySelector('.lf-val').textContent=fmtK(tot);
+}
+function updateStockStats() {
+  document.getElementById('s-tot').textContent=db.macchine.length;
+  document.getElementById('s-disp').textContent=db.macchine.filter(m=>m.stato==='Disponibile').length;
+  document.getElementById('s-crist').textContent=db.macchine.filter(m=>m.stato==='Cristiano').length;
+  document.getElementById('s-da').textContent=db.macchine.filter(m=>m.stato==='Venduta - da incassare').length;
+  const totVal=db.macchine.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0);
+  document.getElementById('s-val').textContent=totVal?'€'+Math.round(totVal)+'k':'—';
 }
 
 // ── RENDER STOCK ───────────────────────────────────────
@@ -603,15 +646,26 @@ function editModello(el, id) {
   inp.style.cssText='width:100%;border:none;outline:none;background:transparent;font-family:Barlow Condensed,sans-serif;font-size:1.15rem;font-weight:800;color:var(--text);padding:0';
   el.innerHTML=''; el.appendChild(inp);
   inp.focus(); inp.select();
-  function commit(){m.modello=inp.value.trim();renderStock();renderListino();debounceSave();}
+  let committed=false;
+  function commit(){
+    if(committed)return; committed=true;
+    m.modello=inp.value.trim()||m.modello;
+    el.textContent=m.modello;
+    const lname=document.querySelector('#listino-list [data-id="'+id+'"] .lcard-name');
+    if(lname) lname.textContent=m.modello;
+    debounceSave();
+  }
   inp.addEventListener('blur',commit);
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();if(e.key==='Escape'){renderStock();}});
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter')inp.blur();
+    if(e.key==='Escape'){committed=true; el.textContent=m.modello;}
+  });
 }
 
 function editSfield(el, id, field, type) {
   const m=db.macchine.find(x=>x.id===id); if(!m) return;
   const valEl=el.querySelector('.sf-val');
-  makeEditable(valEl, m, field, type, ()=>{ renderStock(); renderListino(); renderPat(); });
+  makeEditable(valEl, m, field, type, null);
 }
 
 function changeStato(id,val,sel){
@@ -692,7 +746,7 @@ function renderListino() {
 function editLfield(el, id, field, type) {
   const m=db.macchine.find(x=>x.id===id); if(!m) return;
   const valEl=el.querySelector('.lf-val');
-  makeEditable(valEl, m, field, type, ()=>renderListino());
+  makeEditable(valEl, m, field, type, null);
 }
 
 // ── VENDUTE ────────────────────────────────────────────
