@@ -216,6 +216,18 @@ canvas{width:100%!important;height:180px!important}
 .toast.ok{background:#1a7a3e}
 .toast.err{background:var(--red)}
 
+/* ── LOG ── */
+.log-entry{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-bottom:7px;box-shadow:var(--shadow)}
+.log-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:3px}
+.log-user{font-family:'Barlow Condensed',sans-serif;font-size:.9rem;font-weight:800;letter-spacing:.3px}
+.log-user.francy{color:var(--orange)}
+.log-user.raffaele{color:var(--blue)}
+.log-time{font-size:.68rem;color:var(--muted2)}
+.log-action{font-size:.78rem;color:var(--text2)}
+.log-filter{display:flex;gap:7px;margin-bottom:11px;overflow-x:auto;padding-bottom:2px}
+.log-filter::-webkit-scrollbar{display:none}
+
+
 @media(max-width:500px){
   .scard-fields,.lcard-fields{grid-template-columns:1fr 1fr}
   .mcard-stats{grid-template-columns:1fr 1fr}
@@ -241,6 +253,7 @@ canvas{width:100%!important;height:180px!important}
   <header>
     <div class="header-inner">
       <div class="h-logo">🚜 MICY</div>
+      <div style="font-size:.75rem;color:var(--muted);font-weight:600" id="h-user"></div>
       <div class="h-actions">
         <button class="icon-btn" onclick="loadData()" id="sync-btn">⟳</button>
         <button class="icon-btn primary" id="add-btn" onclick="addMacchina()">+ Aggiungi</button>
@@ -254,6 +267,7 @@ canvas{width:100%!important;height:180px!important}
       <div class="tab" data-tab="vendute" onclick="switchTab('vendute',this)">📦 Vendute</div>
       <div class="tab" data-tab="andamento" onclick="switchTab('andamento',this)">📈 Andamento</div>
       <div class="tab" data-tab="patrimonio" onclick="switchTab('patrimonio',this)">💰 Patrimonio</div>
+      <div class="tab" data-tab="log" onclick="switchTab('log',this)">📋 Log</div>
     </div>
   </div>
 
@@ -337,6 +351,19 @@ canvas{width:100%!important;height:180px!important}
   </div>
 </div>
 
+
+  <!-- ══ LOG ══ -->
+  <div class="page" id="page-log">
+    <div class="page-inner">
+      <div class="log-filter">
+        <div class="chip active" data-f="tutti" onclick="setLogFilter(this,'tutti')">Tutti</div>
+        <div class="chip" data-f="Francy" onclick="setLogFilter(this,'Francy')">Francy</div>
+        <div class="chip" data-f="Raffaele" onclick="setLogFilter(this,'Raffaele')">Raffaele</div>
+      </div>
+      <div id="log-list"><div class="empty">Nessuna modifica registrata ancora.</div></div>
+    </div>
+  </div>
+
 <!-- SELL MODAL -->
 <div class="overlay" id="sell-overlay">
   <div class="modal">
@@ -374,26 +401,76 @@ canvas{width:100%!important;height:180px!important}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 const API_URL  = 'https://api.npoint.io/140c11f8fc8f3b7633e2';
-const PASSWORD = 'micy2024';
+const USERS = {
+  'micy2024': 'Francy',
+  'micy2012': 'Raffaele'
+};
 
-let db = {macchine:[],vendute:[],saldi:[],crediti:[],stockHistory:[]};
+let db = {macchine:[],vendute:[],saldi:[],crediti:[],stockHistory:[],log:[]};
 let sellId = null;
 let saveTimer = null;
 let chartStock = null, chartMargin = null;
 let currentTab = 'stock';
+let currentUser = '';
+let logFilter = 'tutti';
 
 // ── LOGIN ──────────────────────────────────────────────
 function doLogin() {
   const v = document.getElementById('pwd-input').value;
-  if (v === PASSWORD) {
+  const user = USERS[v];
+  if (user) {
+    currentUser = user;
     document.getElementById('login-screen').classList.add('hide');
     document.getElementById('app').classList.remove('hide');
+    // Show username in header
+    document.getElementById('h-user').textContent = user;
     loadData();
   } else {
     document.getElementById('login-err').textContent = '❌ Password errata';
     document.getElementById('pwd-input').value = '';
     setTimeout(()=>document.getElementById('login-err').textContent='',2500);
   }
+}
+
+// ── LOG ────────────────────────────────────────────────
+function addLog(action) {
+  if(!db.log) db.log=[];
+  const now = new Date();
+  const entry = {
+    id: 'l'+Date.now(),
+    user: currentUser,
+    action,
+    ts: now.toISOString(),
+    display: now.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' +
+             now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})
+  };
+  db.log.unshift(entry);
+  if(db.log.length > 200) db.log = db.log.slice(0,200);
+}
+
+function setLogFilter(el, f) {
+  document.querySelectorAll('.log-filter .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  logFilter = f;
+  renderLog();
+}
+
+function renderLog() {
+  const entries = (db.log||[]).filter(e => logFilter==='tutti' || e.user===logFilter);
+  if(!entries.length) {
+    document.getElementById('log-list').innerHTML='<div class="empty">Nessuna modifica registrata.</div>';
+    return;
+  }
+  document.getElementById('log-list').innerHTML = entries.map(e => {
+    const cls = e.user==='Francy'?'francy':'raffaele';
+    return `<div class="log-entry">
+      <div class="log-top">
+        <span class="log-user ${cls}">${e.user}</span>
+        <span class="log-time">${e.display}</span>
+      </div>
+      <div class="log-action">${e.action}</div>
+    </div>`;
+  }).join('');
 }
 
 // ── API ────────────────────────────────────────────────
@@ -407,6 +484,7 @@ async function loadData() {
     if (!db.macchine)     db.macchine     = [];
     if (!db.vendute)      db.vendute      = [];
     if (!db.stockHistory) db.stockHistory = [];
+    if (!db.log)          db.log          = [];
     if (!db.saldi   || !db.saldi.length)   db.saldi   = defaultSaldi();
     if (!db.crediti || !db.crediti.length) db.crediti = defaultCrediti();
     if (!db.macchine.length) { seedMacchine(); await saveData(); }
@@ -428,7 +506,7 @@ async function saveData() {
 function debounceSave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async()=>{
-    try { await saveData(); toast('✓ Salvato','ok'); }
+    try { await saveData(); toast('✓ Salvato','ok'); renderLog(); }
     catch(e) { toast('❌ Errore salvataggio','err'); }
   }, 1000);
 }
@@ -493,9 +571,10 @@ function switchTab(name, el) {
   // hide add button on listino (read-only from user perspective)
   document.getElementById('add-btn').style.display = name==='listino'?'none':'';
   if (name==='andamento') setTimeout(renderAndamento,50);
+  if (name==='log') renderLog();
 }
 
-function renderAll() { renderStock(); renderListino(); renderVendute(); renderPat(); }
+function renderAll() { renderStock(); renderListino(); renderVendute(); renderPat(); renderLog(); }
 
 // ── HELPERS ────────────────────────────────────────────
 function fmtK(v){const n=parseFloat(v);if(!n&&n!==0)return '—';if(!n)return '—';return '€'+n.toLocaleString('it-IT',{minimumFractionDigits:0,maximumFractionDigits:1})+'k';}
@@ -529,7 +608,11 @@ function makeEditable(el, m, field, type, onDone) {
     committed = true;
     let val = inp.value.trim();
     if(type==='number') val = val===''?'':parseFloat(val)||0;
+    const _oldVal = m[field];
     m[field]=val;
+    if(String(_oldVal) !== String(val)) {
+      addLog('✏️ ' + (m.modello||'?') + ': ' + field + ' → ' + val);
+    }
     el.classList.remove('editing');
     // update display without full re-render
     const display = field==='ore' && val ? Number(val).toLocaleString('it-IT') : (val||'—');
@@ -670,6 +753,7 @@ function editSfield(el, id, field, type) {
 
 function changeStato(id,val,sel){
   const m=db.macchine.find(x=>x.id===id);if(!m)return;
+  addLog('🔄 ' + m.modello + ': stato → ' + val);
   m.stato=val;
   const sc=val==='Disponibile'?'disp':val==='Cristiano'?'crist':'vend';
   sel.className='status-sel '+sc;
@@ -686,6 +770,7 @@ function changeStato(id,val,sel){
 function addMacchina() {
   const m={id:'m'+Date.now(),modello:'Nuovo modello',anno:'',ore:'',acq:0,spe:0,stato:'Disponibile',note:'',location:''};
   db.macchine.unshift(m);
+  addLog('➕ Aggiunta macchina: ' + m.modello);
   renderStock(); renderListino();
   debounceSave();
   setTimeout(()=>{
@@ -697,7 +782,9 @@ function addMacchina() {
 function deleteMacchina(id){
   const m=db.macchine.find(x=>x.id===id);
   if(!confirm(`Eliminare "${m?m.modello:'questa macchina'}"?`)) return;
+  const _dname = m ? m.modello : id;
   db.macchine=db.macchine.filter(x=>x.id!==id);
+  addLog('🗑 Eliminata macchina: ' + _dname);
   renderStock(); renderListino(); renderPat();
   debounceSave();
 }
@@ -837,7 +924,7 @@ function renderPat() {
   document.getElementById('pat-content').innerHTML=html;
 }
 
-async function updateSaldo(id,val){const s=db.saldi.find(x=>x.id===id);if(s)s.val=parseFloat(val)||0;renderPat();try{await saveData();toast('✓ Salvato','ok');}catch(e){toast('❌ Errore','err');}}
+async function updateSaldo(id,val){const s=db.saldi.find(x=>x.id===id);if(s){addLog('💳 Saldo ' + s.voce + ': ' + val + 'k');s.val=parseFloat(val)||0;}renderPat();try{await saveData();toast('✓ Salvato','ok');}catch(e){toast('❌ Errore','err');}}
 async function updateCredito(id,val){const c=db.crediti.find(x=>x.id===id);if(c)c.val=parseFloat(val)||0;renderPat();try{await saveData();toast('✓ Salvato','ok');}catch(e){toast('❌ Errore','err');}}
 
 // ── SELL MODAL ─────────────────────────────────────────
@@ -879,6 +966,7 @@ async function confirmSell(){
   db.vendute.unshift(venduta);
   db.macchine=db.macchine.filter(x=>x.id!==sellId);
   maybeSnapshotHistory();
+  addLog('💰 Venduta: ' + m.modello + ' a €' + vend + 'k');
   try{await saveData();closeSellModal();renderAll();toast('✓ Vendita registrata','ok');}
   catch(e){toast('❌ Errore','err');}
 }
