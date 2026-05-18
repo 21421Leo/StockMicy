@@ -498,17 +498,39 @@ async function loadData() {
   btn.textContent = '⟳';
 }
 
+// ── SAVE QUEUE (prevents race conditions) ─────────────
+let _saving = false;
+let _pendingSave = false;
+
 async function saveData() {
-  const r = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(db)});
-  if (!r.ok) throw new Error();
+  if (_saving) {
+    _pendingSave = true;
+    return;
+  }
+  _saving = true;
+  _pendingSave = false;
+  try {
+    const snapshot = JSON.stringify(db);
+    const r = await fetch(API_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: snapshot
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    toast('✓ Salvato','ok');
+    renderLog();
+  } catch(e) {
+    toast('❌ Errore salvataggio — riprova','err');
+    throw e;
+  } finally {
+    _saving = false;
+    if (_pendingSave) saveData();
+  }
 }
 
 function debounceSave() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(async()=>{
-    try { await saveData(); toast('✓ Salvato','ok'); renderLog(); }
-    catch(e) { toast('❌ Errore salvataggio','err'); }
-  }, 1000);
+  saveTimer = setTimeout(()=> saveData().catch(()=>{}), 800);
 }
 
 // Weekly snapshot
@@ -764,7 +786,7 @@ function changeStato(id,val,sel){
   document.getElementById('s-disp').textContent=db.macchine.filter(m=>m.stato==='Disponibile').length;
   document.getElementById('s-crist').textContent=db.macchine.filter(m=>m.stato==='Cristiano').length;
   document.getElementById('s-da').textContent=db.macchine.filter(m=>m.stato==='Venduta - da incassare').length;
-  debounceSave();
+  saveData().catch(()=>{});
 }
 
 function addMacchina() {
@@ -772,7 +794,7 @@ function addMacchina() {
   db.macchine.unshift(m);
   addLog('➕ Aggiunta macchina: ' + m.modello);
   renderStock(); renderListino();
-  debounceSave();
+  saveData().catch(()=>{});
   setTimeout(()=>{
     const el=document.querySelector('#stock-list .scard:first-child .scard-modello');
     if(el) editModello(el,m.id);
@@ -786,7 +808,7 @@ function deleteMacchina(id){
   db.macchine=db.macchine.filter(x=>x.id!==id);
   addLog('🗑 Eliminata macchina: ' + _dname);
   renderStock(); renderListino(); renderPat();
-  debounceSave();
+  saveData().catch(()=>{});
 }
 
 // ── RENDER LISTINO ─────────────────────────────────────
