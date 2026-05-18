@@ -498,39 +498,30 @@ async function loadData() {
   btn.textContent = '⟳';
 }
 
-// ── SAVE QUEUE (prevents race conditions) ─────────────
-let _saving = false;
-let _pendingSave = false;
+// ── SAVE — sequential, no race conditions ──────────────
+let _saveQueue = Promise.resolve();
 
-async function saveData() {
-  if (_saving) {
-    _pendingSave = true;
-    return;
-  }
-  _saving = true;
-  _pendingSave = false;
-  try {
-    const snapshot = JSON.stringify(db);
-    const r = await fetch(API_URL, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: snapshot
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    toast('✓ Salvato','ok');
-    renderLog();
-  } catch(e) {
-    toast('❌ Errore salvataggio — riprova','err');
-    throw e;
-  } finally {
-    _saving = false;
-    if (_pendingSave) saveData();
-  }
+function saveData() {
+  _saveQueue = _saveQueue.then(async () => {
+    try {
+      const r = await fetch(API_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(db)
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      toast('✓ Salvato','ok');
+      renderLog();
+    } catch(e) {
+      toast('❌ Errore salvataggio','err');
+    }
+  });
+  return _saveQueue;
 }
 
 function debounceSave() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(()=> saveData().catch(()=>{}), 800);
+  saveTimer = setTimeout(() => saveData(), 600);
 }
 
 // Weekly snapshot
@@ -615,6 +606,8 @@ function getSorted(list, by) {
 function makeEditable(el, m, field, type, onDone) {
   if (el.querySelector('input')) return;
   el.classList.add('editing');
+  // Capture ID at edit-start so we always find the right object at commit time
+  const machineId = m.id;
   const cur = m[field]!==undefined ? m[field] : '';
   const inp = document.createElement('input');
   inp.type = type==='number'?'number':'text';
@@ -628,35 +621,33 @@ function makeEditable(el, m, field, type, onDone) {
   function commit() {
     if(committed) return;
     committed = true;
+    // Always resolve the machine fresh from db by ID
+    const machine = db.macchine.find(x => x.id === machineId);
+    if (!machine) return; // machine was deleted while editing
     let val = inp.value.trim();
     if(type==='number') val = val===''?'':parseFloat(val)||0;
-    const _oldVal = m[field];
-    m[field]=val;
+    const _oldVal = machine[field];
+    machine[field] = val;
     if(String(_oldVal) !== String(val)) {
-      addLog('✏️ ' + (m.modello||'?') + ': ' + field + ' → ' + val);
+      addLog('✏️ ' + (machine.modello||'?') + ': ' + field + ' → ' + val);
     }
     el.classList.remove('editing');
-    // update display without full re-render
     const display = field==='ore' && val ? Number(val).toLocaleString('it-IT') : (val||'—');
     el.textContent = display;
-    // update totale if acq or spe changed
-    if(field==='acq'||field==='spe') updateCardTotale(m);
-    // update listino costo if relevant
-    if(['acq','spe','anno','ore','location'].includes(field)) updateListinoCard(m);
-    // update stats
+    if(field==='acq'||field==='spe') updateCardTotale(machine);
+    if(['acq','spe','anno','ore','location'].includes(field)) updateListinoCard(machine);
     updateStockStats();
     if(onDone) onDone();
-    debounceSave();
+    saveData();
     maybeSnapshotHistory();
   }
-  inp.addEventListener('blur',commit);
-  inp.addEventListener('keydown',e=>{
-    if(e.key==='Enter'){e.preventDefault();inp.blur();}
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){e.preventDefault(); inp.blur();}
     if(e.key==='Escape'){
       committed=true;
       el.classList.remove('editing');
-      const orig = m[field];
-      el.textContent = field==='ore'&&orig?Number(orig).toLocaleString('it-IT'):(orig||'—');
+      el.textContent = field==='ore'&&cur?Number(cur).toLocaleString('it-IT'):(cur||'—');
     }
   });
 }
@@ -744,26 +735,32 @@ function renderStock() {
 }
 
 function editModello(el, id) {
-  const m=db.macchine.find(x=>x.id===id); if(!m) return;
   if(el.querySelector('input')) return;
+  const origM = db.macchine.find(x=>x.id===id); if(!origM) return;
+  const origName = origM.modello||'';
   const inp=document.createElement('input');
-  inp.value=m.modello||'';
+  inp.value=origName;
   inp.style.cssText='width:100%;border:none;outline:none;background:transparent;font-family:Barlow Condensed,sans-serif;font-size:1.15rem;font-weight:800;color:var(--text);padding:0';
   el.innerHTML=''; el.appendChild(inp);
   inp.focus(); inp.select();
   let committed=false;
   function commit(){
     if(committed)return; committed=true;
-    m.modello=inp.value.trim()||m.modello;
-    el.textContent=m.modello;
+    // Re-fetch from db by ID at commit time
+    const machine = db.macchine.find(x=>x.id===id);
+    if(!machine){el.textContent=origName;return;}
+    const newName = inp.value.trim()||origName;
+    if(newName !== machine.modello) addLog('✏️ Rinominata: ' + machine.modello + ' → ' + newName);
+    machine.modello=newName;
+    el.textContent=newName;
     const lname=document.querySelector('#listino-list [data-id="'+id+'"] .lcard-name');
-    if(lname) lname.textContent=m.modello;
-    debounceSave();
+    if(lname) lname.textContent=newName;
+    saveData();
   }
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',e=>{
     if(e.key==='Enter')inp.blur();
-    if(e.key==='Escape'){committed=true; el.textContent=m.modello;}
+    if(e.key==='Escape'){committed=true; el.textContent=origName;}
   });
 }
 
