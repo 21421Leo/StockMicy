@@ -216,6 +216,30 @@ canvas{width:100%!important;height:180px!important}
 .toast.ok{background:#1a7a3e}
 .toast.err{background:var(--red)}
 
+
+/* ── FATTURE ── */
+.fattura-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow);animation:fadeUp .18s ease both;display:grid;grid-template-columns:1fr auto;align-items:center}
+.fattura-body{padding:11px 13px}
+.fattura-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+.fattura-nr{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:var(--text)}
+.fattura-cliente{font-size:.82rem;color:var(--text2);font-weight:500}
+.fattura-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.fattura-importo{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:800;color:var(--orange)}
+.fattura-data{font-size:.72rem;color:var(--muted2)}
+.fattura-note{font-size:.72rem;color:var(--muted);margin-top:3px}
+.fattura-side{padding:11px 13px;display:flex;flex-direction:column;align-items:center;gap:6px;border-left:1px solid var(--border)}
+.fpaid-btn{border:none;border-radius:20px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;-webkit-appearance:none}
+.fpaid-btn.pagata{background:var(--green-bg);color:var(--green)}
+.fpaid-btn.attesa{background:var(--red-bg);color:var(--red)}
+.fdel-btn{background:none;border:none;font-size:.8rem;color:var(--muted2);cursor:pointer;padding:2px 6px}
+.fdel-btn:hover{color:var(--red)}
+.fatture-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:13px}
+.fat-stat{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:10px 10px;box-shadow:var(--shadow);text-align:center}
+.fat-stat .fsv{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:800;color:var(--orange)}
+.fat-stat.green .fsv{color:var(--green)}
+.fat-stat.red .fsv{color:var(--red)}
+.fat-stat .fsl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;font-weight:600}
+
 /* ── LOG ── */
 .log-entry{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-bottom:7px;box-shadow:var(--shadow)}
 .log-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:3px}
@@ -256,7 +280,7 @@ canvas{width:100%!important;height:180px!important}
       <div style="font-size:.75rem;color:var(--muted);font-weight:600" id="h-user"></div>
       <div class="h-actions">
         <button class="icon-btn" onclick="loadData()" id="sync-btn">⟳</button>
-        <button class="icon-btn primary" id="add-btn" onclick="addMacchina()">+ Aggiungi</button>
+        <button class="icon-btn primary" id="add-btn" onclick="handleAdd()">+ Aggiungi</button>
       </div>
     </div>
   </header>
@@ -267,6 +291,7 @@ canvas{width:100%!important;height:180px!important}
       <div class="tab" data-tab="vendute" onclick="switchTab('vendute',this)">📦 Vendute</div>
       <div class="tab" data-tab="andamento" onclick="switchTab('andamento',this)">📈 Andamento</div>
       <div class="tab" data-tab="patrimonio" onclick="switchTab('patrimonio',this)">💰 Patrimonio</div>
+      <div class="tab" data-tab="fatture" onclick="switchTab('fatture',this)">🧾 Fatture</div>
       <div class="tab" data-tab="log" onclick="switchTab('log',this)">📋 Log</div>
     </div>
   </div>
@@ -331,7 +356,7 @@ canvas{width:100%!important;height:180px!important}
   <div class="page" id="page-andamento">
     <div class="page-inner">
       <div class="chart-wrap">
-        <div class="chart-title">📈 Valore Stock nel Tempo</div>
+        <div class="chart-title" id="chart-main-title">📈 Patrimonio nel Tempo</div>
         <canvas id="stockChart"></canvas>
         <div class="chart-empty hide" id="chart-empty">Torna tra qualche settimana — i dati si accumulano automaticamente</div>
       </div>
@@ -352,6 +377,27 @@ canvas{width:100%!important;height:180px!important}
 </div>
 
 
+
+  <!-- ══ FATTURE ══ -->
+  <div class="page" id="page-fatture">
+    <div class="page-inner">
+      <div class="fatture-summary">
+        <div class="fat-stat"><div class="fsv" id="fat-tot">0</div><div class="fsl">Fatture</div></div>
+        <div class="fat-stat green"><div class="fsv" id="fat-incassato">€0</div><div class="fsl">Incassato</div></div>
+        <div class="fat-stat red"><div class="fsv" id="fat-attesa">€0</div><div class="fsl">In attesa</div></div>
+      </div>
+      <div class="table-toolbar">
+        <input class="tbl-search" id="fat-search" placeholder="🔍 Cliente o numero..." oninput="renderFatture()">
+        <select class="sort-select" id="fat-filter" onchange="renderFatture()" style="flex-shrink:0">
+          <option value="tutti">Tutte</option>
+          <option value="attesa">In attesa</option>
+          <option value="pagata">Pagate</option>
+        </select>
+      </div>
+      <div id="fatture-list"><div class="empty">Nessuna fattura ancora.</div></div>
+    </div>
+  </div>
+
   <!-- ══ LOG ══ -->
   <div class="page" id="page-log">
     <div class="page-inner">
@@ -363,6 +409,51 @@ canvas{width:100%!important;height:180px!important}
       <div id="log-list"><div class="empty">Nessuna modifica registrata ancora.</div></div>
     </div>
   </div>
+
+
+<!-- FATTURA MODAL -->
+<div class="overlay" id="fat-overlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🧾 Nuova Fattura</div>
+    <div class="form-grid">
+      <div class="form-row">
+        <div class="form-label">Nr Fattura *</div>
+        <input class="form-input" id="fat-nr" placeholder="es. 42/2026">
+      </div>
+      <div class="form-row">
+        <div class="form-label">Data</div>
+        <input class="form-input" id="fat-data" type="date">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-label">Cliente *</div>
+      <input class="form-input" id="fat-cliente" placeholder="Nome cliente o società">
+    </div>
+    <div class="form-grid">
+      <div class="form-row">
+        <div class="form-label">Importo (€)</div>
+        <input class="form-input" id="fat-importo" type="number" placeholder="5000" inputmode="decimal" step="0.01">
+      </div>
+      <div class="form-row">
+        <div class="form-label">Tipo</div>
+        <select class="form-select" id="fat-tipo">
+          <option value="vendita">Vendita macchina</option>
+          <option value="noleggio">Noleggio</option>
+          <option value="altro">Altro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-label">Note</div>
+      <input class="form-input" id="fat-note" placeholder="Riferimento, descrizione...">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn save" onclick="saveFattura()">💾 SALVA</button>
+      <button class="modal-btn cancel" onclick="closeFatModal()">Annulla</button>
+    </div>
+  </div>
+</div>
 
 <!-- SELL MODAL -->
 <div class="overlay" id="sell-overlay">
@@ -380,6 +471,10 @@ canvas{width:100%!important;height:180px!important}
     <div class="form-row">
       <div class="form-label">Data vendita</div>
       <input class="form-input" id="sell-date" type="date">
+    </div>
+    <div class="form-row">
+      <div class="form-label">Invoice Nr</div>
+      <input class="form-input" id="sell-invoice" placeholder="es. 42/2026">
     </div>
     <div class="form-row">
       <div class="form-label">Note vendita</div>
@@ -406,7 +501,7 @@ const USERS = {
   'micy2012': 'Raffaele'
 };
 
-let db = {macchine:[],vendute:[],saldi:[],crediti:[],stockHistory:[],log:[]};
+let db = {macchine:[],vendute:[],saldi:[],crediti:[],stockHistory:[],log:[],fatture:[],patrimHistory:[]};
 let sellId = null;
 let saveTimer = null;
 let chartStock = null, chartMargin = null;
@@ -485,6 +580,8 @@ async function loadData() {
     if (!db.vendute)      db.vendute      = [];
     if (!db.stockHistory) db.stockHistory = [];
     if (!db.log)          db.log          = [];
+    if (!db.fatture)      db.fatture      = [];
+    if (!db.patrimHistory) db.patrimHistory = [];
     if (!db.saldi   || !db.saldi.length)   db.saldi   = defaultSaldi();
     if (!db.crediti || !db.crediti.length) db.crediti = defaultCrediti();
     if (!db.macchine.length) { seedMacchine(); await saveData(); }
@@ -581,13 +678,14 @@ function switchTab(name, el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('page-'+name).classList.add('active');
-  // hide add button on listino (read-only from user perspective)
-  document.getElementById('add-btn').style.display = name==='listino'?'none':'';
+
   if (name==='andamento') setTimeout(renderAndamento,50);
   if (name==='log') renderLog();
+  if (name==='fatture') renderFatture();
+  document.getElementById('add-btn').style.display = (name==='listino'||name==='andamento')?'none':'';
 }
 
-function renderAll() { renderStock(); renderListino(); renderVendute(); renderPat(); renderLog(); }
+function renderAll() { renderStock(); renderListino(); renderVendute(); renderPat(); renderLog(); renderFatture(); }
 
 // ── HELPERS ────────────────────────────────────────────
 function fmtK(v){const n=parseFloat(v);if(!n&&n!==0)return '—';if(!n)return '—';return '€'+n.toLocaleString('it-IT',{minimumFractionDigits:0,maximumFractionDigits:1})+'k';}
@@ -892,6 +990,7 @@ function renderVendute() {
         ${m.note?`<span class="mcard-note">📝 ${m.note}</span>`:''}
         ${m.noteVendita?`<span class="mcard-note">🤝 ${m.noteVendita}</span>`:''}
         ${m.location?`<span class="mcard-note">📍 ${m.location}</span>`:''}
+        ${m.invoiceNr?`<span class="mcard-note">🧾 ${m.invoiceNr}</span>`:''}
         ${m.dataVendita?`<span class="mcard-date">📅 ${fmtDate(m.dataVendita)}</span>`:''}
       </div>
       <div class="mcard-actions"><button class="mact-btn danger" onclick="deleteVenduta('${m.id}')">🗑 Rimuovi</button></div>
@@ -901,16 +1000,31 @@ function renderVendute() {
 
 // ── ANDAMENTO ──────────────────────────────────────────
 function renderAndamento() {
+  maybeSnapshotPatrimony();
   const h=db.stockHistory||[];
+  const ph=db.patrimHistory||[];
   if(chartStock){chartStock.destroy();chartStock=null;}
-  if(h.length<2){
-    document.getElementById('stockChart').classList.add('hide');
-    document.getElementById('chart-empty').classList.remove('hide');
-  } else {
+  // Patrimony chart (priority) or stock chart fallback
+  if(ph.length>=2){
+    document.getElementById('stockChart').classList.remove('hide');
+    document.getElementById('chart-empty').classList.add('hide');
+    chartStock=new Chart(document.getElementById('stockChart').getContext('2d'),{
+      type:'line',
+      data:{
+        labels:ph.map(x=>fmtDate(x.date)),
+        datasets:[
+          {label:'Patrimonio Totale',data:ph.map(x=>x.totale),borderColor:'#e8940f',backgroundColor:'rgba(232,148,15,.08)',borderWidth:2.5,fill:true,tension:.35,pointRadius:4,pointBackgroundColor:'#e8940f'},
+          {label:'Liquidità',data:ph.map(x=>x.liquidita),borderColor:'#1a5fa8',backgroundColor:'transparent',borderWidth:1.5,fill:false,tension:.35,pointRadius:3,pointBackgroundColor:'#1a5fa8',borderDash:[4,3]},
+          {label:'Stock',data:ph.map(x=>x.stock),borderColor:'#1a7a3e',backgroundColor:'transparent',borderWidth:1.5,fill:false,tension:.35,pointRadius:3,pointBackgroundColor:'#1a7a3e',borderDash:[4,3]}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{size:11},boxWidth:12}}},scales:{y:{ticks:{callback:v=>'€'+v+'k'},grid:{color:'#f0efeb'}},x:{grid:{display:false}}}}
+    });
+  } else if(h.length>=2){
     document.getElementById('stockChart').classList.remove('hide');
     document.getElementById('chart-empty').classList.add('hide');
     chartStock=new Chart(document.getElementById('stockChart').getContext('2d'),{type:'line',data:{labels:h.map(x=>fmtDate(x.date)),datasets:[{label:'Valore Stock (k€)',data:h.map(x=>x.val),borderColor:'#e8940f',backgroundColor:'rgba(232,148,15,.1)',borderWidth:2.5,fill:true,tension:.35,pointRadius:4,pointBackgroundColor:'#e8940f'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'€'+v+'k'},grid:{color:'#f0efeb'}},x:{grid:{display:false}}}}});
-  }
+  } else {
   if(chartMargin){chartMargin.destroy();chartMargin=null;}
   const v=db.vendute||[];
   if(!v.length){
@@ -955,6 +1069,7 @@ function openSell(id){
   document.getElementById('sell-cost').textContent=`Costo totale: ${fmtK(costo)}`;
   document.getElementById('sell-price').value='';
   document.getElementById('sell-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('sell-invoice').value='';
   document.getElementById('sell-note').value='';
   document.getElementById('margin-preview').style.display='none';
   document.getElementById('sell-overlay').classList.add('open');
@@ -980,7 +1095,7 @@ async function confirmSell(){
   const m=db.macchine.find(x=>x.id===sellId);if(!m)return;
   const vend=parseFloat(document.getElementById('sell-price').value);
   if(!vend){toast('⚠️ Inserisci il prezzo','err');return;}
-  const venduta={...m,venduto:vend,dataVendita:document.getElementById('sell-date').value,noteVendita:document.getElementById('sell-note').value};
+  const venduta={...m,venduto:vend,dataVendita:document.getElementById('sell-date').value,noteVendita:document.getElementById('sell-note').value,invoiceNr:document.getElementById('sell-invoice').value.trim()};
   if(!db.vendute)db.vendute=[];
   db.vendute.unshift(venduta);
   db.macchine=db.macchine.filter(x=>x.id!==sellId);
@@ -996,6 +1111,134 @@ async function deleteVenduta(id){
   try{await saveData();renderVendute();toast('✓ Rimosso','ok');}catch(e){toast('❌ Errore','err');}
 }
 
+
+// ── PATRIMONIO HISTORY ─────────────────────────────────
+function maybeSnapshotPatrimony() {
+  const now = new Date();
+  // Only snapshot on Fridays (5) at or after 19:00
+  if (now.getDay() !== 5) return;
+  if (now.getHours() < 19) return;
+  if (!db.patrimHistory) db.patrimHistory = [];
+  const weekKey = `${now.getFullYear()}-W${getWeek(now)}`;
+  const last = db.patrimHistory[db.patrimHistory.length-1];
+  if (last && last.week === weekKey) return;
+  const liquidita = db.saldi.reduce((s,x)=>s+(parseFloat(x.val)||0),0);
+  const stock = db.macchine.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0);
+  db.patrimHistory.push({
+    week: weekKey,
+    date: now.toISOString().split('T')[0],
+    liquidita: Math.round(liquidita),
+    stock: Math.round(stock),
+    totale: Math.round(liquidita + stock)
+  });
+  if (db.patrimHistory.length > 104) db.patrimHistory = db.patrimHistory.slice(-104);
+}
+
+// ── HANDLE ADD BUTTON ──────────────────────────────────
+function handleAdd() {
+  if (currentTab === 'fatture') openFatModal();
+  else addMacchina();
+}
+
+// ── FATTURE ────────────────────────────────────────────
+function openFatModal() {
+  document.getElementById('fat-nr').value = '';
+  document.getElementById('fat-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('fat-cliente').value = '';
+  document.getElementById('fat-importo').value = '';
+  document.getElementById('fat-tipo').value = 'vendita';
+  document.getElementById('fat-note').value = '';
+  document.getElementById('fat-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('fat-nr').focus(),150);
+}
+function closeFatModal() { document.getElementById('fat-overlay').classList.remove('open'); }
+
+async function saveFattura() {
+  const nr = document.getElementById('fat-nr').value.trim();
+  const cliente = document.getElementById('fat-cliente').value.trim();
+  if (!nr || !cliente) { toast('⚠️ Nr fattura e cliente obbligatori','err'); return; }
+  const f = {
+    id: 'f'+Date.now(),
+    nr,
+    data: document.getElementById('fat-data').value,
+    cliente,
+    importo: parseFloat(document.getElementById('fat-importo').value)||0,
+    tipo: document.getElementById('fat-tipo').value,
+    note: document.getElementById('fat-note').value.trim(),
+    pagata: false
+  };
+  if (!db.fatture) db.fatture=[];
+  db.fatture.unshift(f);
+  addLog('🧾 Fattura ' + nr + ' — ' + cliente + ' €' + f.importo);
+  closeFatModal();
+  renderFatture();
+  await saveData();
+}
+
+async function togglePagata(id) {
+  const f = db.fatture.find(x=>x.id===id); if(!f) return;
+  f.pagata = !f.pagata;
+  addLog((f.pagata?'✅':'↩️') + ' Fattura ' + f.nr + ': ' + (f.pagata?'pagata':'rimessa in attesa'));
+  renderFatture();
+  await saveData();
+}
+
+async function deleteFattura(id) {
+  const f = db.fatture.find(x=>x.id===id);
+  if (!confirm('Eliminare fattura ' + (f?f.nr:id) + '?')) return;
+  db.fatture = db.fatture.filter(x=>x.id!==id);
+  renderFatture();
+  await saveData();
+}
+
+function renderFatture() {
+  if(!db.fatture) db.fatture=[];
+  const q = (document.getElementById('fat-search')?document.getElementById('fat-search').value||'':'').toLowerCase();
+  const filt = document.getElementById('fat-filter')?document.getElementById('fat-filter').value:'tutti';
+  let list = db.fatture.filter(f => {
+    const mq = !q || f.nr.toLowerCase().includes(q) || f.cliente.toLowerCase().includes(q);
+    const mf = filt==='tutti' || (filt==='pagata'&&f.pagata) || (filt==='attesa'&&!f.pagata);
+    return mq && mf;
+  });
+
+  // Stats
+  const totIncassato = db.fatture.filter(f=>f.pagata).reduce((s,f)=>s+(f.importo||0),0);
+  const totAttesa = db.fatture.filter(f=>!f.pagata).reduce((s,f)=>s+(f.importo||0),0);
+  const si = document.getElementById('fat-tot'); if(si) si.textContent=db.fatture.length;
+  const si2 = document.getElementById('fat-incassato'); if(si2) si2.textContent='€'+Math.round(totIncassato/1000)+'k';
+  const si3 = document.getElementById('fat-attesa'); if(si3) si3.textContent='€'+Math.round(totAttesa/1000)+'k';
+
+  const el = document.getElementById('fatture-list'); if(!el) return;
+  if(!list.length) { el.innerHTML='<div class="empty">Nessuna fattura trovata.</div>'; return; }
+
+  const tipoIcon = {vendita:'🚜',noleggio:'🔑',altro:'📄'};
+  el.innerHTML = list.map((f,i)=>`
+    <div class="fattura-card" style="animation-delay:${Math.min(i,8)*.03}s">
+      <div class="fattura-body">
+        <div class="fattura-top">
+          <span class="fattura-nr">${tipoIcon[f.tipo]||'📄'} ${f.nr}</span>
+          <span class="fattura-cliente">${f.cliente}</span>
+        </div>
+        <div class="fattura-meta">
+          <span class="fattura-importo">€${(f.importo||0).toLocaleString('it-IT')}</span>
+          ${f.data?`<span class="fattura-data">📅 ${fmtDate(f.data)}</span>`:''}
+          <span class="fattura-data" style="color:var(--muted);font-style:italic">${f.tipo}</span>
+        </div>
+        ${f.note?`<div class="fattura-note">📝 ${f.note}</div>`:''}
+      </div>
+      <div class="fattura-side">
+        <button class="fpaid-btn ${f.pagata?'pagata':'attesa'}" onclick="togglePagata('${f.id}')">
+          ${f.pagata?'✅ Pagata':'⏳ Attesa'}
+        </button>
+        <button class="fdel-btn" onclick="deleteFattura('${f.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+document.getElementById('fat-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('fat-overlay')) closeFatModal();
+});
+
 // ── TOAST ──────────────────────────────────────────────
 let toastTimer;
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+type;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2500);}
@@ -1003,3 +1246,4 @@ document.getElementById('sell-overlay').addEventListener('click',e=>{if(e.target
 </script>
 </body>
 </html>
+
