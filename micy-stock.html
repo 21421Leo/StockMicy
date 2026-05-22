@@ -1200,19 +1200,64 @@ function renderPat() {
   const totC = db.crediti.reduce((s,x) => s + (parseFloat(x.val)||0), 0);
   const totM = db.macchine.reduce((s,m) => s + (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0), 0);
   const grand = totS + totC + totM;
+
   let html = '';
-  html += '<div class="sec-title">💳 Liquidità</div><div class="pat-card">';
+
+  // ── LIQUIDITÀ ──
+  html += `<div class="sec-title">💳 Liquidità</div>
+  <div class="pat-card">`;
   db.saldi.forEach(s => {
-    html += `<div class="pat-edit-row"><div class="pl">${s.voce}</div><div style="display:flex;align-items:center;gap:3px"><span style="color:var(--muted);font-size:.8rem">€</span><input class="pat-edit-input" type="number" value="${s.val}" step="0.5" inputmode="decimal" onchange="updateSaldo('${s.id}',this.value)"><span style="color:var(--muted);font-size:.8rem">k</span></div></div>`;
+    html += `<div class="pat-edit-row">
+      <div style="display:flex;align-items:center;gap:8px;flex:1">
+        <button class="pat-del-btn" onclick="deleteSaldo('${s.id}')" title="Rimuovi">✕</button>
+        <div class="pl">${s.voce}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:3px">
+        <span style="color:var(--muted);font-size:.8rem">€</span>
+        <input class="pat-edit-input" type="number" value="${s.val}" step="0.5" inputmode="decimal" onchange="updateSaldo('${s.id}',this.value)">
+        <span style="color:var(--muted);font-size:.8rem">k</span>
+      </div>
+    </div>`;
   });
-  html += `<div class="pat-row tot"><div class="pl b">Totale Liquidità</div><div class="pv acc">${fmtK(totS)}</div></div></div>`;
-  html += '<div class="sec-title">📋 Crediti Vari</div><div class="pat-card">';
+  html += `<div class="pat-row tot"><div class="pl b">Totale Liquidità</div><div class="pv acc">${fmtK(totS)}</div></div>
+  <button class="pat-add-btn" onclick="addSaldo()">+ Aggiungi voce</button>
+  </div>`;
+
+  // ── CREDITI ──
+  html += `<div class="sec-title">📋 Crediti Vari</div>
+  <div class="pat-card">`;
   db.crediti.forEach(c => {
-    html += `<div class="pat-edit-row"><div class="pl">${c.voce}</div><div style="display:flex;align-items:center;gap:3px"><span style="color:var(--muted);font-size:.8rem">€</span><input class="pat-edit-input" type="number" value="${c.val}" step="0.5" inputmode="decimal" onchange="updateCredito('${c.id}',this.value)"><span style="color:var(--muted);font-size:.8rem">k</span></div></div>`;
+    html += `<div class="pat-edit-row">
+      <div style="display:flex;align-items:center;gap:8px;flex:1">
+        <button class="pat-del-btn" onclick="deleteCredito('${c.id}')" title="Rimuovi">✕</button>
+        <div class="pl">${c.voce}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:3px">
+        <span style="color:var(--muted);font-size:.8rem">€</span>
+        <input class="pat-edit-input" type="number" value="${c.val}" step="0.5" inputmode="decimal" onchange="updateCredito('${c.id}',this.value)">
+        <span style="color:var(--muted);font-size:.8rem">k</span>
+      </div>
+    </div>`;
   });
-  html += `<div class="pat-row tot"><div class="pl b">Totale Crediti</div><div class="pv acc">${fmtK(totC)}</div></div></div>`;
-  html += `<div class="sec-title">🚜 Valore Stock</div><div class="pat-card"><div class="pat-row"><div class="pl">Macchine attive (${db.macchine.length})</div><div class="pv acc">${fmtK(totM)}</div></div></div>`;
-  html += `<div class="grand-box"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:var(--orange);letter-spacing:.5px">💎 PATRIMONIO TOTALE</div><div class="pv acc" style="font-size:1.4rem">${fmtK(grand)}</div></div>`;
+  html += `<div class="pat-row tot"><div class="pl b">Totale Crediti</div><div class="pv acc">${fmtK(totC)}</div></div>
+  <button class="pat-add-btn" onclick="addCredito()">+ Aggiungi voce</button>
+  </div>`;
+
+  // ── STOCK ──
+  html += `<div class="sec-title">🚜 Valore Stock</div>
+  <div class="pat-card">
+    <div class="pat-row">
+      <div class="pl">Macchine attive (${db.macchine.length})</div>
+      <div class="pv acc">${fmtK(totM)}</div>
+    </div>
+  </div>`;
+
+  // ── GRAND TOTAL ──
+  html += `<div class="grand-box">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:var(--orange);letter-spacing:.5px">💎 PATRIMONIO TOTALE</div>
+    <div class="pv acc" style="font-size:1.4rem">${fmtK(grand)}</div>
+  </div>`;
+
   document.getElementById('pat-content').innerHTML = html;
 }
 
