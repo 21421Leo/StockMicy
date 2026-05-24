@@ -523,6 +523,27 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
 /* Overlay animation */
 .overlay.open .modal{animation:slideDown .22s cubic-bezier(.34,1.3,.64,1) both}
 
+
+/* ── DETAIL PANEL ── */
+.detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);z-index:200;align-items:flex-end;justify-content:center}
+.detail-overlay.open{display:flex}
+.detail-panel{background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:80vh;overflow-y:auto;padding:20px 16px 40px;box-shadow:0 -4px 40px rgba(0,0,0,.15)}
+.detail-panel.open{animation:modalIn .28s cubic-bezier(.34,1.2,.64,1) both}
+.dp-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.dp-title{font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:900;color:var(--text);margin-bottom:4px}
+.dp-sub{font-size:.82rem;color:var(--muted);margin-bottom:18px}
+.dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.dp-field{background:var(--surf2);border-radius:10px;padding:11px 13px;cursor:text;transition:background .15s ease}
+.dp-field.editing{background:var(--orange-light);outline:2px solid var(--orange);border-radius:10px}
+.dp-field-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:4px}
+.dp-field-val{font-size:.95rem;font-weight:600;color:var(--text)}
+.dp-field-val.acc{color:var(--orange)}
+.dp-close{width:100%;margin-top:8px;padding:13px;background:var(--surf2);border:1px solid var(--border);border-radius:12px;font-family:'Barlow',sans-serif;font-size:.9rem;font-weight:600;color:var(--text2);cursor:pointer;-webkit-appearance:none}
+.dp-close:active{background:var(--surf3)}
+.info-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:.72rem;color:var(--muted);cursor:pointer;font-family:'Barlow',sans-serif;font-weight:500;transition:all .15s ease;flex-shrink:0}
+.info-btn:hover{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+.info-btn:active{transform:scale(.9)}
+
 </style>
 </head>
 <body>
@@ -555,10 +576,8 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
   <div class="tabs">
     <div class="tabs-inner">
       <div class="tab active" data-tab="stock" onclick="switchTab('stock',this)">📋 Stock</div>
-      <div class="tab" data-tab="listino" onclick="switchTab('listino',this)">📄 Listino</div>
-      <div class="tab" data-tab="andamento" onclick="switchTab('andamento',this)">📈 Andamento</div>
-      <div class="tab" data-tab="patrimonio" onclick="switchTab('patrimonio',this)">💰 Patrimonio</div>
       <div class="tab" data-tab="fatture" onclick="switchTab('fatture',this)">🧾 Fatture</div>
+      <div class="tab" data-tab="patrimonio" onclick="switchTab('patrimonio',this)">💰 Patrimonio</div>
       <div class="tab" data-tab="log" onclick="switchTab('log',this)">📋 Log</div>
     </div>
   </div>
@@ -584,46 +603,8 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
   </div>
 
   <!-- LISTINO -->
-  <div class="page" id="page-listino">
-    <div class="page-inner">
-      <div class="table-toolbar">
-        <input class="tbl-search" id="listino-search" placeholder="🔍 Cerca modello..." oninput="renderListino()">
-      </div>
-      <div id="listino-list"></div>
-    </div>
-  </div>
-
   <!-- VENDUTE -->
-  <div class="page" id="page-vendute">
-    <div class="page-inner">
-      <div class="sold-summary">
-        <div class="ss neu"><div class="sv" id="sv-count">0</div><div class="sl">Vendute</div></div>
-        <div class="ss pos"><div class="sv" id="sv-margine">—</div><div class="sl">Margine tot.</div></div>
-        <div class="ss pos"><div class="sv" id="sv-pct">—</div><div class="sl">Margine %</div></div>
-      </div>
-      <div class="table-toolbar">
-        <input class="tbl-search" id="search-sold" placeholder="🔍 Cerca..." oninput="renderVendute()">
-        <select class="sort-select" id="sort-sold" onchange="renderVendute()">
-          <option value="az" selected>A → Z</option>
-          <option value="margine-desc">Margine ↓</option>
-          <option value="margine-asc">Margine ↑</option>
-        </select>
-      </div>
-      <div id="sold-list"></div>
-    </div>
-  </div>
-
   <!-- ANDAMENTO -->
-  <div class="page" id="page-andamento">
-    <div class="page-inner">
-      <div class="chart-wrap">
-        <div class="chart-title">💎 Patrimonio nel Tempo</div>
-        <canvas id="patrimChart"></canvas>
-        <div class="chart-empty hide" id="chart-empty">Il grafico si aggiorna ogni venerdì sera — torna tra qualche settimana</div>
-      </div>
-    </div>
-  </div>
-
   <!-- PATRIMONIO -->
   <div class="page" id="page-patrimonio">
     <div class="page-inner">
@@ -661,6 +642,18 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
       </div>
       <div id="log-list"></div>
     </div>
+  </div>
+</div>
+
+
+<!-- DETAIL PANEL -->
+<div class="detail-overlay" id="detail-overlay">
+  <div class="detail-panel" id="detail-panel">
+    <div class="dp-handle"></div>
+    <div class="dp-title" id="dp-title">—</div>
+    <div class="dp-sub" id="dp-sub">Dettagli macchina</div>
+    <div class="dp-grid" id="dp-grid"></div>
+    <button class="dp-close" onclick="closeDetail()">Chiudi</button>
   </div>
 </div>
 
@@ -909,15 +902,25 @@ function seedMacchine() {
 // ══════════════════════════════════════════════════════
 function maybeSnapshot() {
   const now = new Date();
-  if (now.getDay() !== 5 || now.getHours() < 19) return;
+  const day = now.getDay(); // 0=Sun,1=Mon...5=Fri,6=Sat
+  if (day === 0 || day === 6) return; // no weekends
+  if (now.getHours() < 19) return;   // only after 19:00
   if (!db.patrimHistory) db.patrimHistory = [];
-  const weekKey = `${now.getFullYear()}-W${getWeek(now)}`;
+  // Key = YYYY-MM-DD so one per day max
+  const dayKey = now.toISOString().split('T')[0];
   const last = db.patrimHistory[db.patrimHistory.length - 1];
-  if (last && last.week === weekKey) return;
+  if (last && last.date === dayKey) return; // already snapped today
   const liq   = db.saldi.reduce((s,x) => s + (parseFloat(x.val)||0), 0);
+  const cred  = db.crediti.reduce((s,x) => s + (parseFloat(x.val)||0), 0);
   const stock = db.macchine.reduce((s,m) => s + (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0), 0);
-  db.patrimHistory.push({ week: weekKey, date: now.toISOString().split('T')[0], liq: Math.round(liq), stock: Math.round(stock) });
-  if (db.patrimHistory.length > 104) db.patrimHistory = db.patrimHistory.slice(-104);
+  const daInc = (db.fatture||[]).reduce((s,f) => {
+    if (f.stato==='attesa') return s + (parseFloat(f.importo)||0);
+    if (f.stato==='parziale') return s + (parseFloat(f.importo)||0) - (parseFloat(f.acconto)||0);
+    return s;
+  }, 0);
+  const totale = liq + cred + stock + daInc;
+  db.patrimHistory.push({ date: dayKey, liq: Math.round(liq), cred: Math.round(cred), stock: Math.round(stock), daInc: Math.round(daInc), totale: Math.round(totale) });
+  if (db.patrimHistory.length > 52) db.patrimHistory = db.patrimHistory.slice(-52);
   save();
 }
 function getWeek(d) {
@@ -935,16 +938,16 @@ function switchTab(name, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('page-' + name).classList.add('active');
-  document.getElementById('add-btn').style.display = (name === 'listino' || name === 'andamento' || name === 'log') ? 'none' : '';
-  if (name === 'andamento') { maybeSnapshot(); setTimeout(renderAndamento, 50); }
+  const page = document.getElementById('page-' + name);
+  if (page) page.classList.add('active');
+  document.getElementById('add-btn').style.display = (name === 'log') ? 'none' : '';
   if (name === 'log') renderLog();
   if (name === 'fatture') renderFatture();
+  if (name === 'patrimonio') { maybeSnapshot(); }
 }
 
 function renderAll() {
   renderStock();
-  renderListino();
   renderPat();
   renderFatture();
   renderLog();
@@ -1121,6 +1124,7 @@ function renderStock() {
     return `<div class="scard" data-id="${m.id}">
       <div class="scard-top">
         <div class="scard-modello" onclick="editModello(this,'${m.id}')">${m.modello||''}</div>
+        <button class="info-btn" onclick="openDetail('${m.id}')">ⓘ</button>
       </div>
       <div class="scard-fields">
         <div class="sfield" onclick="editSfield(this,'${m.id}','acq','number')">
@@ -1150,7 +1154,7 @@ function renderStock() {
 
 function handleAdd() {
   if (currentTab === 'fatture') { openFatModal(); return; }
-  if (currentTab === 'fatture') { return; }  // fatture added via sell
+  if (currentTab === 'fatture') { return; }
   // Add new blank machine
   const m = {
     id: 'm' + Date.now(),
@@ -1162,7 +1166,6 @@ function handleAdd() {
   addLog('➕ Aggiunta macchina: ' + m.modello);
   save();
   renderStock();
-  renderListino();
   // Focus modello of new card
   setTimeout(() => {
     const el = document.querySelector('#stock-list .scard:first-child .scard-modello');
@@ -1177,52 +1180,12 @@ function deleteMacchina(id) {
   db.macchine = db.macchine.filter(x => x.id !== id);
   save();
   renderStock();
-  renderListino();
   renderPat();
 }
 
 // ══════════════════════════════════════════════════════
 // RENDER LISTINO
 // ══════════════════════════════════════════════════════
-function renderListino() {
-  const q = (document.getElementById('listino-search').value || '').toLowerCase();
-  const list = [...db.macchine]
-    .filter(m => !q || m.modello.toLowerCase().includes(q))
-    .sort((a, b) => (a.modello||'').localeCompare(b.modello||''));
-  if (!list.length) { document.getElementById('listino-list').innerHTML = '<div class="empty">📭 Nessuna macchina</div>'; return; }
-  document.getElementById('listino-list').innerHTML = list.map((m, i) => {
-    const tot = (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0);
-    const isCrist = m.stato === 'Cristiano';
-    const statTxt = m.stato === 'Disponibile' ? '✅ Disponibile' : m.stato === 'Cristiano' ? '🤝 Cristiano' : '🔴 Da incassare';
-    return `<div class="lcard${isCrist?' c-crist':''}" data-id="${m.id}" style="animation-delay:${Math.min(i,8)*.03}s">
-      <div class="lcard-top">
-        <div>
-          <div class="lcard-name">${m.modello}</div>
-          <div class="lcard-sub">${statTxt}</div>
-        </div>
-      </div>
-      <div class="lcard-fields">
-        <div class="lfield" onclick="makeEditable(this.querySelector('.lf-val'),'${m.id}','anno','number')">
-          <div class="lf-label">Anno</div>
-          <div class="lf-val">${m.anno || '—'}</div>
-        </div>
-        <div class="lfield" onclick="makeEditable(this.querySelector('.lf-val'),'${m.id}','ore','number')">
-          <div class="lf-label">Ore</div>
-          <div class="lf-val">${m.ore ? Number(m.ore).toLocaleString('it-IT') : '—'}</div>
-        </div>
-        <div class="lfield" onclick="makeEditable(this.querySelector('.lf-val'),'${m.id}','location','text')">
-          <div class="lf-label">Location</div>
-          <div class="lf-val">${m.location || '—'}</div>
-        </div>
-        <div class="lfield">
-          <div class="lf-label">Costo totale</div>
-          <div class="lf-val acc lf-costo">${fmtK(tot)}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
 // ══════════════════════════════════════════════════════
 // SELL MODAL
 // ══════════════════════════════════════════════════════
@@ -1312,75 +1275,6 @@ function deleteVenduta(id) {
 // ══════════════════════════════════════════════════════
 // ANDAMENTO — stacked bar
 // ══════════════════════════════════════════════════════
-function renderAndamento() {
-  const h = db.patrimHistory || [];
-  if (chartPatrim) { chartPatrim.destroy(); chartPatrim = null; }
-  const ctx = document.getElementById('patrimChart').getContext('2d');
-  if (h.length < 2) {
-    document.getElementById('patrimChart').classList.add('hide');
-    document.getElementById('chart-empty').classList.remove('hide');
-    return;
-  }
-  document.getElementById('patrimChart').classList.remove('hide');
-  document.getElementById('chart-empty').classList.add('hide');
-  chartPatrim = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: h.map(x => fmtDate(x.date)),
-      datasets: [
-        {
-          label: 'Liquidità',
-          data: h.map(x => x.liq),
-          backgroundColor: 'rgba(26,95,168,0.85)',
-          borderRadius: 4,
-          borderSkipped: false,
-        },
-        {
-          label: 'Stock',
-          data: h.map(x => x.stock),
-          backgroundColor: 'rgba(232,148,15,0.85)',
-          borderRadius: 4,
-          borderSkipped: false,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: { font: { size: 11 }, boxWidth: 12, padding: 12 }
-        },
-        tooltip: {
-          callbacks: {
-            footer: (items) => {
-              const tot = items.reduce((s, i) => s + i.raw, 0);
-              return 'Totale: €' + Math.round(tot).toLocaleString('it-IT') + 'k';
-            }
-          }
-        },
-        datalabels: false
-      },
-      scales: {
-        x: { stacked: true, grid: { display: false } },
-        y: {
-          stacked: true,
-          ticks: { callback: v => '€' + v + 'k' },
-          grid: { color: '#f0efeb' }
-        }
-      }
-    }
-  });
-  // Draw value labels on bars
-  // Chart.js 4 supports datalabels via plugin — we'll do it manually via afterDraw
-  chartPatrim.options.animation = {
-    onComplete: () => drawBarLabels(chartPatrim)
-  };
-  chartPatrim.update();
-}
-
 function drawBarLabels(chart) {
   const ctx = chart.ctx;
   chart.data.datasets.forEach((dataset, di) => {
@@ -1503,6 +1397,29 @@ function renderPat() {
     </div>
   </div>`;
 
+
+  // ── STORICO ──
+  if (db.patrimHistory && db.patrimHistory.length > 0) {
+    const hist = db.patrimHistory.slice().reverse(); // most recent first
+    html += `<div class="sec-title" style="margin-top:20px">📊 Storico Patrimonio</div>
+    <div class="pat-card" style="overflow:hidden">`;
+    hist.forEach((h, i) => {
+      const d = new Date(h.date);
+      const label = d.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'});
+      const isFirst = i === 0;
+      html += `<div class="pat-row" style="${isFirst?'background:var(--orange-light)':''}">
+        <div>
+          <div class="pl${isFirst?' b':''}">📅 ${label}${isFirst?' <span style=\"font-size:.68rem;color:var(--orange);font-weight:700\">ultimo</span>':''}</div>
+          <div style="font-size:.68rem;color:var(--muted);margin-top:1px">
+            Liq: ${fmtK(h.liq)} · Stock: ${fmtK(h.stock)}${h.daInc?` · Da inc: ${fmtK(h.daInc)}`:''}${h.cred?` · Crediti: ${fmtK(h.cred)}`:''}
+          </div>
+        </div>
+        <div class="pv${isFirst?' acc':''}">${fmtK(h.totale||(h.liq+h.stock+(h.daInc||0)+(h.cred||0)))}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
   document.getElementById('pat-content').innerHTML = html;
 }
 
@@ -1586,7 +1503,7 @@ function renderLog() {
 // ══════════════════════════════════════════════════════
 // PRINT PDF
 // ══════════════════════════════════════════════════════
-function printReport() {
+function printStock() {
   const { jsPDF } = window.jspdf;
   if (!jsPDF) { toast('⚠️ Libreria PDF non caricata, riprova','err'); return; }
 
@@ -1770,6 +1687,74 @@ function printReport() {
   toast('✓ PDF scaricato','ok');
 }
 
+function printListino() {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { toast('⚠️ Libreria PDF non caricata','err'); return; }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const W = 210, margin = 14;
+
+  function fK(v){ const n=parseFloat(v); if(!n) return '—'; return '€'+n.toLocaleString('it-IT',{maximumFractionDigits:1})+'k'; }
+
+  // Header
+  doc.setFillColor(26,26,26);
+  doc.rect(0,0,W,22,'F');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(20);
+  doc.setTextColor(245,166,35);
+  doc.text('LISTINO MACCHINE', margin, 14);
+  doc.setFontSize(9);
+  doc.setTextColor(180,180,180);
+  doc.text(dateStr, margin, 20);
+  doc.text(db.macchine.length + ' macchine', W-margin, 14, {align:'right'});
+
+  const list = [...db.macchine].sort((a,b) => (a.modello||'').localeCompare(b.modello||''));
+
+  doc.autoTable({
+    startY: 28,
+    margin: {left:margin, right:margin},
+    head: [['Modello','Anno','Ore','Location','Costo']],
+    body: list.map(m => {
+      const tot = (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0);
+      return [
+        m.modello || '—',
+        m.anno || '—',
+        m.ore ? Number(m.ore).toLocaleString('it-IT') : '—',
+        m.location || '—',
+        fK(tot)
+      ];
+    }),
+    styles: {fontSize:8.5, cellPadding:2.8, font:'helvetica', textColor:[26,26,26]},
+    headStyles: {fillColor:[26,26,26], textColor:[245,166,35], fontStyle:'bold', fontSize:8},
+    columnStyles: {
+      0: {cellWidth:'auto', fontStyle:'bold'},
+      1: {cellWidth:18, halign:'center'},
+      2: {cellWidth:22, halign:'right'},
+      3: {cellWidth:'auto'},
+      4: {cellWidth:28, halign:'right', textColor:[212,130,10], fontStyle:'bold'}
+    },
+    alternateRowStyles: {fillColor:[250,250,248]},
+    tableLineColor:[220,220,215], tableLineWidth:0.2,
+  });
+
+  // Footer
+  const pages = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(180,180,180);
+    doc.setFont('helvetica','normal');
+    doc.text('Micy Stock — Listino ' + dateStr, margin, 292);
+    doc.text('Pag.'+i+'/'+pages, W-margin, 292, {align:'right'});
+  }
+
+  doc.save('Listino_Micy_' + dateStr.replace(/\//g,'-') + '.pdf');
+  toast('✓ Listino scaricato','ok');
+}
+
+
 
 
 // ── FATTURE ──────────────────────────────────────────────
@@ -1921,6 +1906,72 @@ async function deleteCredito(id) {
 // ══════════════════════════════════════════════════════
 // TOAST
 // ══════════════════════════════════════════════════════
+
+// ── DETAIL PANEL ──────────────────────────────────────────
+let detailId = null;
+
+function openDetail(id) {
+  const m = db.macchine.find(x => x.id === id);
+  if (!m) return;
+  detailId = id;
+  const costo = (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0);
+  document.getElementById('dp-title').textContent = m.modello;
+  document.getElementById('dp-sub').textContent = 'Costo totale: ' + fmtK(costo);
+  document.getElementById('dp-grid').innerHTML = `
+    <div class="dp-field" onclick="editDetailField(this,'${id}','anno','number')">
+      <div class="dp-field-label">Anno</div>
+      <div class="dp-field-val">${m.anno||'—'}</div>
+    </div>
+    <div class="dp-field" onclick="editDetailField(this,'${id}','ore','number')">
+      <div class="dp-field-label">Ore lavorate</div>
+      <div class="dp-field-val">${m.ore ? Number(m.ore).toLocaleString('it-IT') : '—'}</div>
+    </div>
+    <div class="dp-field" onclick="editDetailField(this,'${id}','location','text')" style="grid-column:1/-1">
+      <div class="dp-field-label">Location</div>
+      <div class="dp-field-val">${m.location||'—'}</div>
+    </div>
+    <div class="dp-field" onclick="editDetailField(this,'${id}','acq','number')">
+      <div class="dp-field-label">Acquisto k€</div>
+      <div class="dp-field-val acc">${m.acq||'—'}</div>
+    </div>
+    <div class="dp-field" onclick="editDetailField(this,'${id}','spe','number')">
+      <div class="dp-field-label">Spese k€</div>
+      <div class="dp-field-val">${m.spe||'—'}</div>
+    </div>
+    <div class="dp-field" style="grid-column:1/-1">
+      <div class="dp-field-label">Totale costo</div>
+      <div class="dp-field-val acc">${fmtK(costo)}</div>
+    </div>
+    <div class="dp-field" onclick="editDetailField(this,'${id}','note','text')" style="grid-column:1/-1">
+      <div class="dp-field-label">Note</div>
+      <div class="dp-field-val" style="color:var(--muted)">${m.note||'—'}</div>
+    </div>
+  `;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open');
+  detailId = null;
+}
+
+function editDetailField(el, id, field, type) {
+  const m = db.macchine.find(x => x.id === id); if (!m) return;
+  const valEl = el.querySelector('.dp-field-val');
+  makeEditable(valEl, m, field, type, () => {
+    // Refresh detail panel title if modello changed
+    if (field === 'acq' || field === 'spe') {
+      const costo = (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0);
+      document.getElementById('dp-sub').textContent = 'Costo totale: ' + fmtK(costo);
+    }
+    renderStock();
+  });
+}
+
+document.getElementById('detail-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('detail-overlay')) closeDetail();
+});
+
 let toastTimer;
 function toast(msg, type='') {
   const el = document.getElementById('toast');
