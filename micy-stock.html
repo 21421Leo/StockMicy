@@ -1340,75 +1340,191 @@ function renderLog() {
 // ══════════════════════════════════════════════════════
 function printReport() {
   const { jsPDF } = window.jspdf;
-  if (!jsPDF) { toast('⚠️ Libreria PDF non caricata', 'err'); return; }
+  if (!jsPDF) { toast('⚠️ Libreria PDF non caricata, riprova','err'); return; }
+
   const now = new Date();
-  const dateStr = now.toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const dateStr = now.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
   const W = 210, margin = 14;
   let y = 0;
+
   function fK(v){ const n=parseFloat(v); if(!n) return '—'; return '€'+n.toLocaleString('it-IT',{maximumFractionDigits:1})+'k'; }
-  // Header
+
+  // ── HEADER ──
   doc.setFillColor(26,26,26);
   doc.rect(0,0,W,22,'F');
-  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(245,166,35);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(20);
+  doc.setTextColor(245,166,35);
   doc.text('MICY STOCK', margin, 14);
-  doc.setFontSize(9); doc.setTextColor(180,180,180);
+  doc.setFontSize(9);
+  doc.setTextColor(180,180,180);
   doc.text('Aggiornato al ' + dateStr, margin, 20);
-  doc.text(db.macchine.length + ' macchine', W-margin, 14, {align:'right'});
+  doc.text(db.macchine.length + ' macchine totali', W-margin, 14, {align:'right'});
   y = 30;
-  function drawSection(title, color, list, subtotal) {
-    if (!list.length && title.includes('Cristiano')) return;
+
+  // ── SECTION HELPER ──
+  function drawSection(title, color, list, total) {
+    if(!list.length) return;
     doc.setFillColor(...color);
-    doc.rect(margin, y, W-margin*2, 8,'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
-    doc.text(title+' ('+list.length+')', margin+3, y+5.5);
-    doc.text(fK(subtotal), W-margin-3, y+5.5, {align:'right'});
+    doc.rect(margin, y, W-margin*2, 8, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.setTextColor(255,255,255);
+    doc.text(title + ' (' + list.length + ')', margin+3, y+5.5);
+    doc.text(fK(total), W-margin-3, y+5.5, {align:'right'});
     y += 8;
-    if (!list.length) { doc.setFontSize(8); doc.setTextColor(160,160,160); doc.setFont('helvetica','italic'); doc.text('Nessuna', margin+3, y+5); y+=8; return; }
     doc.autoTable({
-      startY: y, margin: {left:margin,right:margin},
+      startY: y,
+      margin: {left:margin, right:margin},
       head: [['Modello','Acquisto','Spese','Totale']],
-      body: list.map(m => { const tot=(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0); return [m.modello, fK(m.acq), m.spe?fK(m.spe):'—', fK(tot)]; }),
-      styles: {fontSize:8.5,cellPadding:2.5,font:'helvetica',textColor:[26,26,26]},
-      headStyles: {fillColor:[240,239,235],textColor:[100,100,100],fontStyle:'bold',fontSize:7.5},
-      columnStyles: {0:{cellWidth:'auto'},1:{cellWidth:28,halign:'right',textColor:[212,130,10],fontStyle:'bold'},2:{cellWidth:24,halign:'right',textColor:[100,100,100]},3:{cellWidth:28,halign:'right',textColor:[212,130,10],fontStyle:'bold'}},
+      body: list.map(m => {
+        const tot = (parseFloat(m.acq)||0)+(parseFloat(m.spe)||0);
+        return [m.modello, fK(m.acq), m.spe?fK(m.spe):'—', fK(tot)];
+      }),
+      styles: {fontSize:8.5, cellPadding:2.5, font:'helvetica', textColor:[26,26,26]},
+      headStyles: {fillColor:[240,239,235], textColor:[100,100,100], fontStyle:'bold', fontSize:7.5},
+      columnStyles: {
+        0: {cellWidth:'auto'},
+        1: {cellWidth:28, halign:'right', textColor:[212,130,10], fontStyle:'bold'},
+        2: {cellWidth:24, halign:'right', textColor:[100,100,100]},
+        3: {cellWidth:28, halign:'right', textColor:[212,130,10], fontStyle:'bold'}
+      },
       alternateRowStyles: {fillColor:[250,250,248]},
       tableLineColor:[220,220,215], tableLineWidth:0.2,
     });
-    y = doc.lastAutoTable.finalY + 6;
+    y = doc.lastAutoTable.finalY + 5;
+    if (y > 260) { doc.addPage(); y = 15; }
   }
+
+  // ── DA INCASSARE (fatture) HELPER ──
+  function drawDaIncassare(fatList) {
+    if (!fatList.length) return;
+    const totDaInc = fatList.reduce((s,f) => {
+      return s + (f.stato==='parziale'
+        ? (parseFloat(f.importo)||0) - (parseFloat(f.acconto)||0)
+        : (parseFloat(f.importo)||0));
+    }, 0);
+    doc.setFillColor(192,57,43);
+    doc.rect(margin, y, W-margin*2, 8, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.setTextColor(255,255,255);
+    doc.text('DA INCASSARE (' + fatList.length + ')', margin+3, y+5.5);
+    doc.text(fK(totDaInc), W-margin-3, y+5.5, {align:'right'});
+    y += 8;
+    doc.autoTable({
+      startY: y,
+      margin: {left:margin, right:margin},
+      head: [['Nr Fattura','Cliente','Macchina','Venduta a','Acconto','Da incassare']],
+      body: fatList.map(f => {
+        const importo = parseFloat(f.importo)||0;
+        const acconto = parseFloat(f.acconto)||0;
+        const resto = f.stato==='parziale' ? importo-acconto : importo;
+        return [
+          f.nr||'—',
+          f.cliente||'—',
+          f.modello||'—',
+          fK(importo),
+          f.stato==='parziale' ? fK(acconto) : '—',
+          fK(resto)
+        ];
+      }),
+      styles: {fontSize:8, cellPadding:2.5, font:'helvetica', textColor:[26,26,26]},
+      headStyles: {fillColor:[240,239,235], textColor:[100,100,100], fontStyle:'bold', fontSize:7.5},
+      columnStyles: {
+        0: {cellWidth:22},
+        1: {cellWidth:'auto'},
+        2: {cellWidth:'auto'},
+        3: {cellWidth:22, halign:'right', textColor:[212,130,10], fontStyle:'bold'},
+        4: {cellWidth:22, halign:'right', textColor:[100,100,100]},
+        5: {cellWidth:26, halign:'right', textColor:[192,57,43], fontStyle:'bold'}
+      },
+      alternateRowStyles: {fillColor:[253,236,234]},
+      tableLineColor:[220,220,215], tableLineWidth:0.2,
+    });
+    y = doc.lastAutoTable.finalY + 5;
+    if (y > 260) { doc.addPage(); y = 15; }
+  }
+
+  // ── DATA ──
   const disp  = db.macchine.filter(m=>m.stato==='Disponibile');
   const crist = db.macchine.filter(m=>m.stato==='Cristiano');
-  const incas = db.macchine.filter(m=>m.stato==='Venduta - da incassare');
-  drawSection('DISPONIBILI',[26,122,62],disp,disp.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0));
-  if(crist.length) drawSection('CRISTIANO',[26,95,168],crist,crist.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0));
-  drawSection('DA INCASSARE',[192,57,43],incas,incas.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0));
-  if (y > 240) { doc.addPage(); y = 20; }
+  const fatDaInc = (db.fatture||[]).filter(f=>f.stato==='attesa'||f.stato==='parziale')
+    .sort((a,b)=>(a.nr||'').localeCompare(b.nr||'',undefined,{numeric:true}));
+
+  const totDisp  = disp.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0);
+  const totCrist = crist.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0);
+  const totDaInc = fatDaInc.reduce((s,f)=>s+(f.stato==='parziale'?(parseFloat(f.importo)||0)-(parseFloat(f.acconto)||0):(parseFloat(f.importo)||0)),0);
+
+  drawSection('DISPONIBILI', [26,122,62], disp, totDisp);
+  if(crist.length) drawSection('CRISTIANO', [26,95,168], crist, totCrist);
+  drawDaIncassare(fatDaInc);
+
+  // ── PATRIMONIO ──
+  if (y > 220) { doc.addPage(); y = 15; }
   y += 4;
-  doc.setFillColor(26,26,26); doc.rect(margin,y,W-margin*2,8,'F');
-  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(245,166,35);
-  doc.text('RIEPILOGO PATRIMONIO', margin+3, y+5.5); y+=8;
-  const totStock=db.macchine.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0);
-  const totLiq=db.saldi.reduce((s,x)=>s+(parseFloat(x.val)||0),0);
+  doc.setFillColor(26,26,26);
+  doc.rect(margin, y, W-margin*2, 8, 'F');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(9);
+  doc.setTextColor(245,166,35);
+  doc.text('RIEPILOGO PATRIMONIO', margin+3, y+5.5);
+  y += 8;
+
+  const totStock = db.macchine.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0);
+  const totLiq   = db.saldi.reduce((s,x)=>s+(parseFloat(x.val)||0),0);
+  const totCred  = db.crediti.reduce((s,x)=>s+(parseFloat(x.val)||0),0);
+  const totPatr  = totStock + totLiq + totCred + totDaInc;
+
+  const patRows = [
+    ['Valore Stock', fK(totStock)],
+    ...db.saldi.map(s=>[s.voce, fK(s.val)]),
+    ...db.crediti.map(c=>['Credito: '+c.voce, fK(c.val)]),
+    ...(totDaInc>0 ? [['Da incassare (fatture)', fK(totDaInc)]] : []),
+  ];
+
   doc.autoTable({
-    startY:y, margin:{left:margin,right:margin},
-    body: [['Valore Stock',fK(totStock)],...db.saldi.map(s=>[s.voce,fK(s.val)])],
-    styles:{fontSize:8.5,cellPadding:2.5,font:'helvetica',textColor:[26,26,26]},
-    columnStyles:{0:{cellWidth:'auto'},1:{cellWidth:40,halign:'right',fontStyle:'bold',textColor:[26,95,168]}},
-    alternateRowStyles:{fillColor:[250,250,248]},
-    tableLineColor:[220,220,215],tableLineWidth:0.2,
+    startY: y,
+    margin: {left:margin, right:margin},
+    body: patRows,
+    styles: {fontSize:8.5, cellPadding:2.5, font:'helvetica', textColor:[26,26,26]},
+    columnStyles: {
+      0: {cellWidth:'auto'},
+      1: {cellWidth:40, halign:'right', fontStyle:'bold', textColor:[26,95,168]}
+    },
+    alternateRowStyles: {fillColor:[250,250,248]},
+    tableLineColor:[220,220,215], tableLineWidth:0.2,
   });
   y = doc.lastAutoTable.finalY;
-  doc.setFillColor(255,248,236); doc.rect(margin,y,W-margin*2,10,'F');
-  doc.setDrawColor(232,184,75); doc.setLineWidth(0.5); doc.rect(margin,y,W-margin*2,10);
-  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(212,130,10);
+
+  // Total row
+  doc.setFillColor(255,248,236);
+  doc.rect(margin, y, W-margin*2, 10, 'F');
+  doc.setDrawColor(232,184,75);
+  doc.setLineWidth(0.5);
+  doc.rect(margin, y, W-margin*2, 10);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(11);
+  doc.setTextColor(212,130,10);
   doc.text('PATRIMONIO TOTALE', margin+4, y+7);
-  doc.text(fK(totStock+totLiq), W-margin-4, y+7, {align:'right'});
-  const pages = doc.internal.getNumberOfPages();
-  for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFontSize(7);doc.setTextColor(180,180,180);doc.setFont('helvetica','normal');doc.text('Micy Stock — '+dateStr,margin,292);doc.text('Pag.'+i+'/'+pages,W-margin,292,{align:'right'});}
+  doc.text(fK(totPatr), W-margin-4, y+7, {align:'right'});
+
+  // ── FOOTER ──
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(180,180,180);
+    doc.setFont('helvetica','normal');
+    doc.text('Micy Stock — ' + dateStr, margin, 292);
+    doc.text('Pag.'+i+'/'+pageCount, W-margin, 292, {align:'right'});
+  }
+
   doc.save('Stock_Micy_' + dateStr.replace(/\//g,'-') + '.pdf');
-  toast('✓ PDF scaricato', 'ok');
+  toast('✓ PDF scaricato','ok');
 }
+
 
 
 // ── FATTURE ──────────────────────────────────────────────
@@ -1417,7 +1533,7 @@ function renderFatture() {
   const q = (document.getElementById('fat-search')||{value:''}).value.toLowerCase();
   const filt = (document.getElementById('fat-filter')||{value:'tutti'}).value;
 
-  let list = [...db.fatture].sort((a,b) => (b.nr||'').localeCompare(a.nr||'', undefined, {numeric:true}));
+  let list = [...db.fatture].sort((a,b) => (a.nr||'').localeCompare(b.nr||'', undefined, {numeric:true}));
   list = list.filter(f => {
     const mq = !q || (f.nr||'').toLowerCase().includes(q) || (f.cliente||'').toLowerCase().includes(q) || (f.modello||'').toLowerCase().includes(q);
     const mf = filt==='tutti' || f.stato===filt;
