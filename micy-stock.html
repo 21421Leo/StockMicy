@@ -271,6 +271,103 @@ canvas{width:100%!important;height:220px!important}
 .pat-add-btn:hover{background:var(--orange-light)}
 .pat-add-btn::before{content:'＋';font-size:1rem;font-weight:700;line-height:1;color:var(--orange)}
 
+
+/* ── MICRO ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+.scard{transition:box-shadow .2s ease,transform .2s ease}
+.scard:active{transform:scale(.99)}
+.scard:hover{box-shadow:0 4px 16px rgba(0,0,0,.1)}
+
+.lcard{transition:box-shadow .2s ease,transform .2s ease}
+.lcard:active{transform:scale(.99)}
+.lcard:hover{box-shadow:0 4px 16px rgba(0,0,0,.1)}
+
+.fat-card{transition:box-shadow .2s ease,transform .15s ease}
+.fat-card:hover{box-shadow:0 4px 18px rgba(0,0,0,.1)}
+
+.mcard{transition:box-shadow .2s ease}
+.mcard:hover{box-shadow:0 4px 16px rgba(0,0,0,.1)}
+
+.tab{transition:color .18s ease,border-color .18s ease}
+.chip{transition:background .15s ease,border-color .15s ease,color .15s ease}
+
+.icon-btn{transition:background .15s ease,transform .1s ease,box-shadow .15s ease}
+.icon-btn:active{transform:scale(.95)}
+.icon-btn.primary:hover{box-shadow:0 4px 12px rgba(232,148,15,.3)}
+
+.act-btn{transition:background .15s ease,border-color .15s ease,color .15s ease,transform .1s ease}
+.act-btn:active{transform:scale(.96)}
+
+.modal-btn{transition:opacity .15s ease,transform .1s ease}
+.modal-btn:active{transform:scale(.97)}
+
+.pat-card{transition:box-shadow .2s ease}
+.sc{transition:box-shadow .2s ease}
+.sc:hover{box-shadow:0 3px 12px rgba(0,0,0,.1)}
+
+/* Better shadows */
+.scard,.lcard,.fat-card,.mcard,.pat-card,.sc{box-shadow:0 1px 4px rgba(0,0,0,.07),0 2px 8px rgba(0,0,0,.04)}
+
+/* Smoother inputs */
+.form-input,.form-select,.form-textarea,.field-input,.tbl-search,.search-input{transition:border-color .18s ease,box-shadow .18s ease}
+.form-input:focus,.form-select:focus,.form-textarea:focus,.field-input:focus,.tbl-search:focus,.search-input:focus{box-shadow:0 0 0 3px rgba(212,130,10,.12)}
+
+/* Login button glow */
+.login-btn{transition:transform .15s ease,box-shadow .15s ease}
+.login-btn:hover{box-shadow:0 6px 20px rgba(232,148,15,.35)}
+
+/* Fat action buttons */
+.fat-action-btn{transition:background .15s ease,transform .1s ease,border-color .15s ease}
+.fat-action-btn:active{transform:scale(.93)}
+
+/* Pat add/del */
+.pat-add-btn{transition:background .15s ease}
+.pat-del-btn{transition:background .15s ease,color .15s ease}
+
+/* Grand box glow on hover */
+.grand-box{transition:box-shadow .2s ease}
+.grand-box:hover{box-shadow:0 4px 20px rgba(232,184,75,.25)}
+
+/* Staggered card animations */
+#stock-list .scard:nth-child(1){animation:fadeUp .2s ease both .02s}
+#stock-list .scard:nth-child(2){animation:fadeUp .2s ease both .05s}
+#stock-list .scard:nth-child(3){animation:fadeUp .2s ease both .08s}
+#stock-list .scard:nth-child(4){animation:fadeUp .2s ease both .11s}
+#stock-list .scard:nth-child(5){animation:fadeUp .2s ease both .14s}
+#stock-list .scard:nth-child(n+6){animation:fadeUp .2s ease both .16s}
+
+#listino-list .lcard:nth-child(1){animation:fadeUp .2s ease both .02s}
+#listino-list .lcard:nth-child(2){animation:fadeUp .2s ease both .05s}
+#listino-list .lcard:nth-child(3){animation:fadeUp .2s ease both .08s}
+#listino-list .lcard:nth-child(n+4){animation:fadeUp .2s ease both .12s}
+
+#fatture-list .fat-card:nth-child(1){animation:fadeUp .2s ease both .02s}
+#fatture-list .fat-card:nth-child(2){animation:fadeUp .2s ease both .05s}
+#fatture-list .fat-card:nth-child(n+3){animation:fadeUp .2s ease both .09s}
+
+/* Tab indicator animation */
+.tab.active{position:relative}
+.tab.active::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2.5px;background:var(--orange);border-radius:2px;animation:fadeIn .2s ease}
+
+/* Saving indicator pulse */
+#saving-indicator{animation:fadeIn .2s ease}
+
+/* Stats row entrance */
+.stats-row{animation:slideDown .25s ease both}
+.fatture-summary{animation:slideDown .25s ease both}
+
+/* Header subtle border */
+header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
+.tabs{box-shadow:0 1px 0 var(--border)}
+
+/* Overlay animation */
+.overlay.open .modal{animation:slideDown .22s cubic-bezier(.34,1.3,.64,1) both}
+
 </style>
 </head>
 <body>
@@ -315,11 +412,8 @@ canvas{width:100%!important;height:220px!important}
   <div class="page active" id="page-stock">
     <div class="page-inner">
       <div class="stats-row">
-        <div class="sc"><div class="sv" id="s-tot">0</div><div class="sl">Totale</div></div>
-        <div class="sc"><div class="sv" id="s-disp">0</div><div class="sl">Disponibili</div></div>
-        <div class="sc"><div class="sv" id="s-crist">0</div><div class="sl">Cristiano</div></div>
-        <div class="sc"><div class="sv" id="s-da">0</div><div class="sl">Da incass.</div></div>
-        <div class="sc"><div class="sv" id="s-val">—</div><div class="sl">Valore</div></div>
+        <div class="sc"><div class="sv" id="s-tot">0</div><div class="sl">Macchine</div></div>
+        <div class="sc"><div class="sv" id="s-val">—</div><div class="sl">Valore Stock</div></div>
       </div>
       <div class="table-toolbar">
         <input class="tbl-search" id="stock-search" placeholder="🔍 Cerca modello..." oninput="renderStock()">
@@ -840,12 +934,10 @@ function changeStato(machineId, val, sel) {
 }
 
 function updateStockStats() {
-  document.getElementById('s-tot').textContent  = db.macchine.length;
-  document.getElementById('s-disp').textContent = db.macchine.filter(m => m.stato === 'Disponibile').length;
-  document.getElementById('s-crist').textContent= db.macchine.filter(m => m.stato === 'Cristiano').length;
-  document.getElementById('s-da').textContent   = db.macchine.filter(m => m.stato === 'Venduta - da incassare').length;
+  const se = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  se('s-tot', db.macchine.length);
   const tot = db.macchine.reduce((s,m) => s + (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0), 0);
-  document.getElementById('s-val').textContent  = tot ? '€' + Math.round(tot) + 'k' : '—';
+  se('s-val', tot ? '€' + Math.round(tot) + 'k' : '—');
 }
 
 // ══════════════════════════════════════════════════════
@@ -1448,17 +1540,14 @@ function printReport() {
   }
 
   // ── DATA ──
-  const disp  = db.macchine.filter(m=>m.stato==='Disponibile');
-  const crist = db.macchine.filter(m=>m.stato==='Cristiano');
+  const tuttiMacchine = [...db.macchine].sort((a,b)=>(a.modello||'').localeCompare(b.modello||''));
   const fatDaInc = (db.fatture||[]).filter(f=>f.stato==='attesa'||f.stato==='parziale')
     .sort((a,b)=>(a.nr||'').localeCompare(b.nr||'',undefined,{numeric:true}));
 
-  const totDisp  = disp.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0);
-  const totCrist = crist.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0);
+  const totTutti = tuttiMacchine.reduce((s,m)=>s+(parseFloat(m.acq)||0)+(parseFloat(m.spe)||0),0);
   const totDaInc = fatDaInc.reduce((s,f)=>s+(f.stato==='parziale'?(parseFloat(f.importo)||0)-(parseFloat(f.acconto)||0):(parseFloat(f.importo)||0)),0);
 
-  drawSection('DISPONIBILI', [26,122,62], disp, totDisp);
-  if(crist.length) drawSection('CRISTIANO', [26,95,168], crist, totCrist);
+  drawSection('STOCK MACCHINE', [26,26,26], tuttiMacchine, totTutti);
   drawDaIncassare(fatDaInc);
 
   // ── PATRIMONIO ──
