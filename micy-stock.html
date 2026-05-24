@@ -568,7 +568,8 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
       <div class="h-right">
         <span class="h-user" id="h-user"></span>
         <button class="icon-btn" onclick="loadFromStorage()" id="sync-btn">⟳</button>
-        <button class="icon-btn" onclick="printReport()">🖨️</button>
+        <button class="icon-btn" onclick="printStock()" title="Stampa Stock">📋</button>
+        <button class="icon-btn" onclick="printListino()" title="Stampa Listino">📄</button>
         <button class="icon-btn primary" id="add-btn" onclick="handleAdd()">+ Aggiungi</button>
       </div>
     </div>
@@ -1399,22 +1400,27 @@ function renderPat() {
 
 
   // ── STORICO ──
-  if (db.patrimHistory && db.patrimHistory.length > 0) {
-    const hist = db.patrimHistory.slice().reverse(); // most recent first
-    html += `<div class="sec-title" style="margin-top:20px">📊 Storico Patrimonio</div>
-    <div class="pat-card" style="overflow:hidden">`;
+  const hist = db.patrimHistory ? db.patrimHistory.slice().reverse() : [];
+  html += `<div class="sec-title" style="margin-top:20px">📊 Storico Patrimonio</div>`;
+  if (hist.length === 0) {
+    html += `<div style="background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;color:var(--muted);font-size:.85rem;box-shadow:var(--shadow)">
+      Il primo snapshot verrà salvato automaticamente<br>nei giorni feriali alle 19:00
+    </div>`;
+  } else {
+    html += `<div class="pat-card" style="overflow:hidden">`;
     hist.forEach((h, i) => {
       const d = new Date(h.date);
       const label = d.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'});
       const isFirst = i === 0;
+      const tot = h.totale || (h.liq + h.stock + (h.daInc||0) + (h.cred||0));
       html += `<div class="pat-row" style="${isFirst?'background:var(--orange-light)':''}">
         <div>
-          <div class="pl${isFirst?' b':''}">📅 ${label}${isFirst?' <span style=\"font-size:.68rem;color:var(--orange);font-weight:700\">ultimo</span>':''}</div>
+          <div class="pl${isFirst?' b':''}">📅 ${label}${isFirst?' <span style="font-size:.68rem;color:var(--orange);font-weight:700"> · ultimo</span>':''}</div>
           <div style="font-size:.68rem;color:var(--muted);margin-top:1px">
-            Liq: ${fmtK(h.liq)} · Stock: ${fmtK(h.stock)}${h.daInc?` · Da inc: ${fmtK(h.daInc)}`:''}${h.cred?` · Crediti: ${fmtK(h.cred)}`:''}
+            Liq: ${fmtK(h.liq)} · Stock: ${fmtK(h.stock)}${h.daInc?` · Da inc: ${fmtK(h.daInc)}`:''}
           </div>
         </div>
-        <div class="pv${isFirst?' acc':''}">${fmtK(h.totale||(h.liq+h.stock+(h.daInc||0)+(h.cred||0)))}</div>
+        <div class="pv${isFirst?' acc':''}">${fmtK(tot)}</div>
       </div>`;
     });
     html += `</div>`;
