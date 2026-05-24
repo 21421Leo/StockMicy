@@ -1163,13 +1163,16 @@ function renderPat() {
   const totS = db.saldi.reduce((s,x) => s + (parseFloat(x.val)||0), 0);
   const totC = db.crediti.reduce((s,x) => s + (parseFloat(x.val)||0), 0);
   const totM = db.macchine.reduce((s,m) => s + (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0), 0);
-  // Add unpaid invoice amounts to stock (money not yet received)
-  const fatUnpaid = (db.fatture||[]).reduce((s,f) => {
+
+  // Da incassare: fatture parziali o in attesa
+  const fatDaInc = (db.fatture||[]).filter(f => f.stato === 'attesa' || f.stato === 'parziale');
+  const totDaInc = fatDaInc.reduce((s,f) => {
     if (f.stato === 'attesa') return s + (parseFloat(f.importo)||0);
     if (f.stato === 'parziale') return s + (parseFloat(f.importo)||0) - (parseFloat(f.acconto)||0);
     return s;
   }, 0);
-  const grand = totS + totC + totM + fatUnpaid;
+
+  const grand = totS + totC + totM + totDaInc;
 
   function patRow(voce, val, id, type) {
     const isNeg = parseFloat(val) < 0;
@@ -1182,7 +1185,7 @@ function renderPat() {
       </div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
         <span style="color:var(--muted);font-size:.75rem">€</span>
-        <input class="pat-edit-input ${isNeg?'neg':''}" type="number" value="${val}" step="0.5"
+        <input class="pat-edit-input${isNeg?' neg':''}" type="number" value="${val}" step="0.5"
           inputmode="decimal" onchange="update${type}('${id}',this.value)"
           style="${isNeg?'color:var(--red)':''}">
         <span style="color:var(--muted);font-size:.75rem">k</span>
@@ -1193,53 +1196,62 @@ function renderPat() {
   let html = '';
 
   // ── LIQUIDITÀ ──
-  html += `
-  <div class="sec-title" style="margin-top:4px">💳 Liquidità</div>
+  html += `<div class="sec-title" style="margin-top:4px">💳 Liquidità</div>
   <div class="pat-card">
     ${db.saldi.map(s => patRow(s.voce, s.val, s.id, 'Saldo')).join('')}
-    <div class="pat-row tot">
-      <div class="pl b">Totale Liquidità</div>
-      <div class="pv acc">${fmtK(totS)}</div>
-    </div>
+    <div class="pat-row tot"><div class="pl b">Totale Liquidità</div><div class="pv acc">${fmtK(totS)}</div></div>
     <button class="pat-add-btn" onclick="addSaldo()">Aggiungi voce</button>
   </div>`;
 
   // ── CREDITI ──
-  html += `
-  <div class="sec-title">📋 Crediti Vari</div>
+  html += `<div class="sec-title">📋 Crediti Vari</div>
   <div class="pat-card">
     ${db.crediti.map(c => patRow(c.voce, c.val, c.id, 'Credito')).join('')}
-    <div class="pat-row tot">
-      <div class="pl b">Totale Crediti</div>
-      <div class="pv acc">${fmtK(totC)}</div>
-    </div>
+    <div class="pat-row tot"><div class="pl b">Totale Crediti</div><div class="pv acc">${fmtK(totC)}</div></div>
     <button class="pat-add-btn" onclick="addCredito()">Aggiungi credito</button>
   </div>`;
 
+  // ── DA INCASSARE (fatture parziali/attesa) ──
+  if (fatDaInc.length > 0) {
+    html += `<div class="sec-title">⏳ Da Incassare</div>
+    <div class="pat-card">
+      ${fatDaInc.map(f => {
+        const resto = f.stato==='parziale'
+          ? (parseFloat(f.importo)||0) - (parseFloat(f.acconto)||0)
+          : (parseFloat(f.importo)||0);
+        return `<div class="pat-row">
+          <div>
+            <div class="pl">${f.nr} — ${f.cliente||'—'}</div>
+            ${f.modello?`<div style="font-size:.7rem;color:var(--muted)">🚜 ${f.modello}</div>`:''}
+            ${f.stato==='parziale'?`<div style="font-size:.7rem;color:#b8860b">Acconto ricevuto: ${fmtK(parseFloat(f.acconto)||0)}</div>`:''}
+          </div>
+          <div class="pv" style="color:var(--red)">${fmtK(resto)}</div>
+        </div>`;
+      }).join('')}
+      <div class="pat-row tot"><div class="pl b">Totale da incassare</div><div class="pv" style="color:var(--red)">${fmtK(totDaInc)}</div></div>
+    </div>`;
+  }
+
   // ── STOCK ──
-  html += `
-  <div class="sec-title">🚜 Valore Stock</div>
+  html += `<div class="sec-title">🚜 Valore Stock</div>
   <div class="pat-card">
     <div class="pat-row">
       <div class="pl">Macchine attive (${db.macchine.length})</div>
       <div class="pv acc">${fmtK(totM)}</div>
     </div>
-    ${fatUnpaid > 0 ? `<div class="pat-row" style="background:var(--red-bg)">
-      <div class="pl" style="color:var(--red)">📋 Fatture da incassare</div>
-      <div class="pv" style="color:var(--red)">${fmtK(fatUnpaid)}</div>
-    </div>` : ''}
   </div>`;
 
   // ── GRAND TOTAL ──
-  html += `
-  <div class="grand-box" style="margin-top:12px">
+  html += `<div class="grand-box" style="margin-top:12px">
     <div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:700;color:#b8860b;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:2px">Patrimonio Totale</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:var(--orange);line-height:1">${fmtK(grand)}</div>
     </div>
-    <div style="text-align:right">
-      <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px">Liquidità + Crediti + Stock</div>
-      <div style="font-size:.8rem;color:var(--muted2)">${fmtK(totS)} + ${fmtK(totC)} + ${fmtK(totM)}</div>
+    <div style="text-align:right;font-size:.75rem;color:var(--muted);line-height:1.7">
+      <div>Liquidità: ${fmtK(totS)}</div>
+      <div>Crediti: ${fmtK(totC)}</div>
+      ${totDaInc>0?`<div style="color:var(--red)">Da incassare: ${fmtK(totDaInc)}</div>`:''}
+      <div>Stock: ${fmtK(totM)}</div>
     </div>
   </div>`;
 
