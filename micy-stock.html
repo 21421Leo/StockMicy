@@ -272,6 +272,161 @@ canvas{width:100%!important;height:220px!important}
 .pat-add-btn::before{content:'＋';font-size:1rem;font-weight:700;line-height:1;color:var(--orange)}
 
 
+/* ── PREMIUM ANIMATIONS ── */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(10px) scale(.99)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes modalIn{
+  from{opacity:0;transform:translateY(40px) scale(.97)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+@keyframes statPop{
+  0%{transform:scale(.93);opacity:0}
+  60%{transform:scale(1.04)}
+  100%{transform:scale(1);opacity:1}
+}
+@keyframes shimmer{
+  0%{background-position:-400px 0}
+  100%{background-position:400px 0}
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* Cards — smooth spring hover */
+.scard,.lcard,.fat-card,.mcard,.pat-card{
+  transition:box-shadow .25s cubic-bezier(.2,.8,.2,1),transform .2s cubic-bezier(.2,.8,.2,1);
+  will-change:transform;
+}
+.scard:hover,.lcard:hover{
+  box-shadow:0 8px 30px rgba(0,0,0,.1),0 2px 8px rgba(0,0,0,.06);
+  transform:translateY(-1px);
+}
+.scard:active,.lcard:active{transform:scale(.985)}
+.fat-card:hover{box-shadow:0 6px 24px rgba(0,0,0,.09);transform:translateY(-1px)}
+
+/* Stats pop in */
+.sc{
+  animation:statPop .35s cubic-bezier(.34,1.4,.64,1) both;
+  transition:box-shadow .2s ease,transform .15s ease;
+}
+.sc:nth-child(1){animation-delay:.05s}
+.sc:nth-child(2){animation-delay:.1s}
+.sc:nth-child(3){animation-delay:.15s}
+.sc:hover{box-shadow:0 4px 14px rgba(0,0,0,.1);transform:translateY(-1px)}
+
+/* Tabs */
+.tab{transition:color .2s ease;position:relative}
+.tab.active::after{
+  content:'';position:absolute;bottom:-1px;left:20%;right:20%;
+  height:2.5px;background:var(--orange);border-radius:2px;
+  animation:fadeIn .2s ease;
+}
+
+/* Buttons */
+.icon-btn,.act-btn,.fat-action-btn,.modal-btn,.pat-add-btn{
+  transition:background .15s ease,transform .12s cubic-bezier(.2,.8,.2,1),box-shadow .15s ease,color .15s ease,border-color .15s ease;
+}
+.icon-btn:active,.act-btn:active,.fat-action-btn:active{transform:scale(.93)}
+.icon-btn.primary:hover{box-shadow:0 4px 16px rgba(232,148,15,.35)}
+.modal-btn.save:hover{box-shadow:0 4px 16px rgba(232,148,15,.3)}
+.modal-btn:active{transform:scale(.96)}
+
+/* Inputs — Apple-style focus */
+.form-input,.form-select,.form-textarea,.field-input,.tbl-search,.search-input,.pat-edit-input{
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{
+  box-shadow:0 0 0 4px rgba(212,130,10,.14);
+  background:var(--surf);
+}
+.field-input:focus{box-shadow:0 0 0 4px rgba(212,130,10,.14)}
+.tbl-search:focus,.search-input:focus{box-shadow:0 0 0 3px rgba(212,130,10,.12)}
+
+/* Editable fields on tap */
+.sfield,.lfield{transition:background .15s ease,outline .1s ease}
+.sfield.editing,.lfield.editing{
+  background:var(--orange-light);
+  outline:2px solid var(--orange);
+  border-radius:8px;
+}
+
+/* Modal — spring animation */
+.overlay{transition:opacity .22s ease}
+.overlay.open{animation:overlayIn .2s ease both}
+.overlay.open .modal{animation:modalIn .28s cubic-bezier(.34,1.2,.64,1) both}
+
+/* Page entrance */
+.page.active .page-inner{animation:fadeUp .22s cubic-bezier(.2,.8,.2,1) both}
+
+/* Login button */
+.login-btn{transition:transform .15s ease,box-shadow .2s ease}
+.login-btn:hover{box-shadow:0 8px 24px rgba(232,148,15,.4);transform:translateY(-1px)}
+.login-btn:active{transform:scale(.97)}
+
+/* Grand box */
+.grand-box{transition:box-shadow .2s ease,transform .15s ease}
+.grand-box:hover{box-shadow:0 6px 24px rgba(232,184,75,.22);transform:translateY(-1px)}
+
+/* Saving indicator */
+#saving-indicator{animation:fadeIn .2s ease}
+
+/* Header */
+header{box-shadow:0 1px 0 var(--border),0 4px 16px rgba(0,0,0,.04)}
+
+/* Chip */
+.chip{transition:all .15s cubic-bezier(.2,.8,.2,1)}
+.chip:active{transform:scale(.93)}
+
+/* Stats row entrance */
+.stats-row,.fatture-summary{animation:fadeUp .25s cubic-bezier(.2,.8,.2,1) both}
+
+/* Staggered list items */
+.scard,.fat-card,.lcard{animation:fadeUp .25s cubic-bezier(.2,.8,.2,1) both}
+#stock-list .scard:nth-child(1){animation-delay:.03s}
+#stock-list .scard:nth-child(2){animation-delay:.07s}
+#stock-list .scard:nth-child(3){animation-delay:.11s}
+#stock-list .scard:nth-child(4){animation-delay:.14s}
+#stock-list .scard:nth-child(5){animation-delay:.17s}
+#stock-list .scard:nth-child(n+6){animation-delay:.19s}
+#fatture-list .fat-card:nth-child(1){animation-delay:.03s}
+#fatture-list .fat-card:nth-child(2){animation-delay:.07s}
+#fatture-list .fat-card:nth-child(3){animation-delay:.1s}
+#fatture-list .fat-card:nth-child(n+4){animation-delay:.13s}
+
+/* Stats centered and wider */
+.stats-row{justify-content:center;max-width:400px;margin-left:auto;margin-right:auto}
+
+/* ── FATTURE CARDS ── */
+.fat-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow);animation:fadeUp .18s ease both}
+.fat-head{padding:12px 13px;display:flex;align-items:flex-start;gap:8px}
+.fat-nr{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;color:var(--text);letter-spacing:.3px}
+.fat-cliente{font-size:.85rem;color:var(--text2);font-weight:600}
+.fat-importo{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:800;color:var(--orange)}
+.fat-data{font-size:.72rem;color:var(--muted2)}
+.fat-action-btn{background:var(--surf2);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:.72rem;cursor:pointer;font-family:'Barlow',sans-serif;font-weight:600;color:var(--text2);white-space:nowrap;-webkit-appearance:none;transition:.15s}
+.fat-action-btn.green{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.fat-action-btn.del{color:var(--red)}
+.fat-action-btn.del:active{background:var(--red-bg)}
+.fatture-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:13px}
+.fat-stat{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:10px 8px;box-shadow:var(--shadow);text-align:center}
+.fat-stat .fsv{font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:800}
+.fat-stat.green .fsv{color:var(--green)}
+.fat-stat.red .fsv{color:var(--red)}
+.fat-stat.yellow .fsv{color:#b8860b}
+.fat-stat.neu .fsv{color:var(--orange)}
+.fat-stat .fsl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;font-weight:600}
+
+
+/* ── PATRIMONIO BUTTONS ── */
+.pat-del-btn{background:none;border:none;width:24px;height:24px;border-radius:6px;font-size:.7rem;color:var(--muted2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;transition:.15s}
+.pat-del-btn:hover{background:var(--red-bg);color:var(--red)}
+.pat-add-btn{width:100%;padding:11px 16px;background:none;border:none;border-top:1px solid var(--border);color:var(--orange);font-family:'Barlow',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;transition:.15s}
+.pat-add-btn:hover{background:var(--orange-light)}
+.pat-add-btn::before{content:'＋';font-size:1rem;font-weight:700;line-height:1;color:var(--orange)}
+
+
 /* ── MICRO ANIMATIONS ── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -944,44 +1099,45 @@ function updateStockStats() {
 // RENDER STOCK
 // ══════════════════════════════════════════════════════
 function renderStock() {
-  const q  = (document.getElementById('stock-search').value || '').toLowerCase();
-  const by = document.getElementById('stock-sort').value;
-  const list = sortMacchine(db.macchine.filter(m => !q || m.modello.toLowerCase().includes(q)), by);
+  const q = (document.getElementById('stock-search')||{value:''}).value.toLowerCase();
+  const sortBy = (document.getElementById('stock-sort')||{value:'az'}).value;
+
+  let list = db.macchine.filter(m => !q || m.modello.toLowerCase().includes(q));
+  list = [...list].sort((a,b) => {
+    if (sortBy==='prezzo-desc') return ((parseFloat(b.acq)||0)+(parseFloat(b.spe)||0)) - ((parseFloat(a.acq)||0)+(parseFloat(a.spe)||0));
+    if (sortBy==='prezzo-asc')  return ((parseFloat(a.acq)||0)+(parseFloat(a.spe)||0)) - ((parseFloat(b.acq)||0)+(parseFloat(b.spe)||0));
+    return (a.modello||'').localeCompare(b.modello||'');
+  });
+
   updateStockStats();
+
   if (!list.length) {
-    document.getElementById('stock-list').innerHTML = `<div class="empty">📭 ${db.macchine.length === 0 ? 'Aggiungi la prima macchina!' : 'Nessun risultato.'}</div>`;
+    document.getElementById('stock-list').innerHTML = `<div class="empty">📭 ${db.macchine.length===0?'Aggiungi la prima macchina!':'Nessun risultato.'}</div>`;
     return;
   }
-  document.getElementById('stock-list').innerHTML = list.map((m, i) => {
-    const isCrist = m.stato === 'Cristiano', isVend = m.stato === 'Venduta - da incassare';
-    const sc = m.stato === 'Disponibile' ? 'disp' : isCrist ? 'crist' : 'vend';
+
+  document.getElementById('stock-list').innerHTML = list.map((m,i) => {
     const tot = (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0);
-    const cc = isCrist ? ' c-crist' : isVend ? ' c-vend' : '';
-    return `<div class="scard${cc}" data-id="${m.id}" style="animation-delay:${Math.min(i,8)*.03}s">
+    return `<div class="scard" data-id="${m.id}">
       <div class="scard-top">
-        <div class="scard-modello" onclick="editModello(this,'${m.id}')">${m.modello}</div>
-        <select class="status-sel ${sc}" onchange="changeStato('${m.id}',this.value,this)">
-          <option value="Disponibile" ${m.stato==='Disponibile'?'selected':''}>✅ Disponibile</option>
-          <option value="Cristiano" ${m.stato==='Cristiano'?'selected':''}>🤝 Cristiano</option>
-          <option value="Venduta - da incassare" ${m.stato==='Venduta - da incassare'?'selected':''}>🔴 Da incassare</option>
-        </select>
+        <div class="scard-modello" onclick="editModello(this,'${m.id}')">${m.modello||''}</div>
       </div>
       <div class="scard-fields">
-        <div class="sfield" onclick="makeEditable(this.querySelector('.sf-val'),'${m.id}','acq','number')">
+        <div class="sfield" onclick="editSfield(this,'${m.id}','acq','number')">
           <div class="sf-label">Acquisto k€</div>
-          <div class="sf-val acc">${m.acq || '—'}</div>
+          <div class="sf-val acc">${m.acq||'—'}</div>
         </div>
-        <div class="sfield" onclick="makeEditable(this.querySelector('.sf-val'),'${m.id}','spe','number')">
+        <div class="sfield" onclick="editSfield(this,'${m.id}','spe','number')">
           <div class="sf-label">Spese k€</div>
-          <div class="sf-val">${m.spe || '—'}</div>
+          <div class="sf-val">${m.spe||'—'}</div>
         </div>
         <div class="sfield">
           <div class="sf-label">Totale k€</div>
-          <div class="sf-val acc sf-tot">${tot || '—'}</div>
+          <div class="sf-val acc">${tot||'—'}</div>
         </div>
-        <div class="sfield" onclick="makeEditable(this.querySelector('.sf-val'),'${m.id}','note','text')">
+        <div class="sfield" onclick="editSfield(this,'${m.id}','note','text')">
           <div class="sf-label">Note</div>
-          <div class="sf-val" style="color:var(--muted);font-weight:500">${m.note || '—'}</div>
+          <div class="sf-val" style="color:var(--muted);font-weight:500">${m.note||'—'}</div>
         </div>
       </div>
       <div class="scard-actions">
