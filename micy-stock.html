@@ -1045,6 +1045,15 @@ function makeEditable(valEl, machineId, field, type) {
     }
   });
 }
+function editSfield(el, id, field, type) {
+  const valEl = el.querySelector('.sf-val');
+  if (!valEl) return;
+  makeEditable(valEl, id, field, type, () => {
+    updateCardTotale(db.macchine.find(x=>x.id===id));
+    updateStockStats();
+  });
+}
+
 
 function editModello(el, machineId) {
   if (el.querySelector('input')) return;
