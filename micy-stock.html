@@ -47,6 +47,9 @@ header{background:var(--surf);border-bottom:1px solid var(--border);padding:11px
 .icon-btn{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 11px;color:var(--text2);font-size:.8rem;cursor:pointer;font-family:'Barlow',sans-serif;font-weight:500;white-space:nowrap;-webkit-appearance:none}
 .icon-btn:active{background:var(--surf3)}
 .icon-btn.primary{background:var(--orange-btn);border-color:var(--orange-btn);color:#fff;font-weight:600}
+.icon-btn.disabled{opacity:.32;pointer-events:none}
+@keyframes flashNew{0%{background:var(--orange-light)}60%{background:var(--orange-light)}100%{background:var(--surf)}}
+.scard.flash-new{animation:flashNew 1.6s ease}
 
 /* TABS */
 .tabs{background:var(--surf);border-bottom:1px solid var(--border);display:flex;position:sticky;top:50px;z-index:49}
@@ -568,6 +571,8 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
       <div class="h-logo">🚜 MICY</div>
       <div class="h-right">
         <span class="h-user" id="h-user"></span>
+        <button class="icon-btn" id="undo-btn" onclick="undo()" title="Annulla (Ctrl+Z)">↩︎</button>
+        <button class="icon-btn" id="redo-btn" onclick="redo()" title="Ripristina (Ctrl+Shift+Z)">↪︎</button>
         <button class="icon-btn" onclick="loadFromStorage()" id="sync-btn">⟳</button>
         <button class="icon-btn" onclick="printStock()" title="Stampa Stock">📋</button>
         <button class="icon-btn" onclick="printListino()" title="Stampa Listino">📄</button>
@@ -660,6 +665,30 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
 </div>
 
 <!-- SELL MODAL -->
+<div class="overlay" id="add-overlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🚜 Aggiungi macchina</div>
+    <div class="form-row">
+      <div class="form-label">Modello *</div>
+      <input class="form-input" id="add-modello" placeholder="es. Cat 988K 2023" onkeydown="if(event.key==='Enter')confirmAdd()">
+    </div>
+    <div class="form-grid">
+      <div class="form-row">
+        <div class="form-label">Acquisto (k€)</div>
+        <input class="form-input" id="add-acq" type="number" inputmode="decimal" step="0.5" placeholder="es. 120">
+      </div>
+      <div class="form-row">
+        <div class="form-label">Spese (k€)</div>
+        <input class="form-input" id="add-spe" type="number" inputmode="decimal" step="0.5" placeholder="0">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn save" onclick="confirmAdd()">✅ Aggiungi</button>
+      <button class="modal-btn cancel" onclick="closeAddModal()">Annulla</button>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="sell-overlay">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -782,22 +811,24 @@ let chartPatrim = null;
 // ══════════════════════════════════════════════════════
 // STORAGE — dead simple, synchronous, no network
 // ══════════════════════════════════════════════════════
-// ── SAVE (npoint, hard lock) ──────────────────────────
+// ── SAVE + UNDO/REDO ──────────────────────────────────
 let _isSaving = false;
 let _saveQueued = false;
 
-async function save() {
+// History: snapshots of the whole db (JSON strings)
+let _committed = null;   // last persisted state
+let _undo = [];
+let _redo = [];
+const HIST_MAX = 40;
+
+// Low-level: push current db to npoint. Used by save(), undo(), redo().
+async function persist() {
   if (_isSaving) { _saveQueued = true; return; }
   _isSaving = true;
   _saveQueued = false;
-
-  // Snapshot BEFORE any async gap
   const snapshot = JSON.stringify(db);
-
-  // Show saving indicator
   const si = document.getElementById('saving-indicator');
   if (si) si.style.display = 'flex';
-
   try {
     const r = await fetch(API_URL, {
       method: 'POST',
@@ -813,9 +844,64 @@ async function save() {
   } finally {
     _isSaving = false;
     if (si) si.style.display = 'none';
-    if (_saveQueued) save();
+    if (_saveQueued) persist();
   }
 }
+
+// Records the change in history, then persists.
+async function save() {
+  const cur = JSON.stringify(db);
+  if (_committed !== null && _committed !== cur) {
+    _undo.push(_committed);
+    if (_undo.length > HIST_MAX) _undo.shift();
+    _redo = [];            // a new action invalidates the redo chain
+  }
+  _committed = cur;
+  updateUndoButtons();
+  await persist();
+}
+
+function updateUndoButtons() {
+  const u = document.getElementById('undo-btn');
+  const r = document.getElementById('redo-btn');
+  if (u) u.classList.toggle('disabled', _undo.length === 0);
+  if (r) r.classList.toggle('disabled', _redo.length === 0);
+}
+
+async function undo() {
+  if (!_undo.length) return;
+  _redo.push(JSON.stringify(db));
+  const prev = _undo.pop();
+  db = JSON.parse(prev);
+  _committed = prev;
+  renderAll();
+  updateUndoButtons();
+  toast('↩️ Annullato', 'ok');
+  await persist();
+}
+
+async function redo() {
+  if (!_redo.length) return;
+  _undo.push(JSON.stringify(db));
+  const next = _redo.pop();
+  db = JSON.parse(next);
+  _committed = next;
+  renderAll();
+  updateUndoButtons();
+  toast('↪️ Ripristinato', 'ok');
+  await persist();
+}
+
+// Keyboard: Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (or Ctrl/Cmd+Y)
+document.addEventListener('keydown', e => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (!mod) return;
+  const k = e.key.toLowerCase();
+  const typing = /^(input|textarea|select)$/i.test((e.target.tagName||''));
+  if (typing) return; // don't hijack text editing
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+  else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+});
 
 async function loadFromStorage() {
   try {
@@ -834,6 +920,7 @@ async function loadFromStorage() {
     if (!db.clienti)       db.clienti       = [];
     if (db.macchine.length === 0) { seedMacchine(); await save(); }
     renderAll();
+    _committed = JSON.stringify(db); _undo = []; _redo = []; updateUndoButtons();
     maybeSnapshot(); // first open after 19:00 on a weekday records the day
     toast('✓ Caricato', 'ok');
   } catch(e) {
@@ -1231,23 +1318,47 @@ function renderStock() {
 
 function handleAdd() {
   if (currentTab === 'fatture') { openFatModal(); return; }
-  if (currentTab === 'fatture') { return; }
-  // Add new blank machine
+  openAddModal();
+}
+function openAddModal() {
+  document.getElementById('add-modello').value = '';
+  document.getElementById('add-acq').value = '';
+  document.getElementById('add-spe').value = '';
+  document.getElementById('add-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('add-modello').focus(), 150);
+}
+function closeAddModal() { document.getElementById('add-overlay').classList.remove('open'); }
+function confirmAdd() {
+  const modello = document.getElementById('add-modello').value.trim();
+  if (!modello) { toast('⚠️ Inserisci il modello', 'err'); return; }
   const m = {
     id: 'm' + Date.now(),
-    modello: 'Nuovo modello',
-    anno: '', ore: '', acq: 0, spe: 0,
+    modello,
+    anno: '', ore: '',
+    acq: parseFloat(document.getElementById('add-acq').value) || 0,
+    spe: parseFloat(document.getElementById('add-spe').value) || 0,
     stato: 'Disponibile', note: '', location: ''
   };
-  db.macchine.unshift(m);
-  addLog('➕ Aggiunta macchina: ' + m.modello);
-  save();
+  db.macchine.push(m);
+  addLog('➕ Aggiunta macchina: ' + modello);
+  closeAddModal();
+  if (currentTab !== 'stock') {
+    const tab = document.querySelector('.tab[data-tab="stock"]');
+    if (tab) tab.click();
+  }
   renderStock();
-  // Focus modello of new card
+  renderPat();
+  save();
+  scrollToMachine(m.id);
+}
+function scrollToMachine(id) {
   setTimeout(() => {
-    const el = document.querySelector('#stock-list .scard:first-child .scard-modello');
-    if (el) editModello(el, m.id);
-  }, 60);
+    const card = document.querySelector('#stock-list [data-id="' + id + '"]');
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('flash-new');
+    setTimeout(() => card.classList.remove('flash-new'), 1700);
+  }, 90);
 }
 
 function deleteMacchina(id) {
