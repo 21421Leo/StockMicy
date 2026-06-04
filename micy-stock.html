@@ -9,6 +9,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 :root {
   --bg:#eef1f6; --surf:#fff; --surf2:#f3f5f9; --surf3:#e6eaf1;
@@ -593,6 +595,8 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
         <button class="icon-btn" onclick="loadFromStorage()" id="sync-btn">⟳</button>
         <button class="icon-btn" onclick="printStock()" title="Stampa Stock">📋</button>
         <button class="icon-btn" onclick="printListino()" title="Stampa Listino">📄</button>
+        <button class="icon-btn" onclick="exportBackup()" title="Esporta backup">💾</button>
+        <button class="icon-btn" onclick="importBackup()" title="Importa backup">📥</button>
         <button class="icon-btn primary" id="add-btn" onclick="handleAdd()">+ Aggiungi</button>
       </div>
     </div>
@@ -834,6 +838,74 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
 // ══════════════════════════════════════════════════════
 const STORAGE_KEY = 'micy_db_v3';
 const API_URL = 'https://api.npoint.io/140c11f8fc8f3b7633e2';
+
+// ════════════════════════════════════════════════════════════
+// ARCHIVIO PRIMARIO: Firebase Firestore (Google) — affidabile e condiviso.
+// Per attivarlo: console.firebase.google.com → crea progetto →
+// aggiungi App Web → incolla qui i 6 valori. Finché è vuoto,
+// l'app continua a usare npoint come prima (nessuna interruzione).
+// ════════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDfD-C6dkis5K8L-oDz8BR6KTaUviG1-ew",
+  authDomain: "micystock.firebaseapp.com",
+  projectId: "micystock",
+  storageBucket: "micystock.firebasestorage.app",
+  messagingSenderId: "920964604717",
+  appId: "1:920964604717:web:5b92ff2a851138bc7ee9a4"
+};
+
+let fdb = null;            // Firestore handle (null = uso npoint)
+let _lastBackupDay = null; // throttle daily versioned backups
+
+function initFirebase() {
+  try {
+    if (FIREBASE_CONFIG.projectId && window.firebase && !fdb) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      fdb = firebase.firestore();
+      console.log('Firestore attivo');
+    }
+  } catch(e) { console.error('Firebase init error', e); fdb = null; }
+  return !!fdb;
+}
+
+// Returns the stored db as a JSON string, or throws on failure.
+async function remoteLoad() {
+  if (fdb) {
+    const snap = await fdb.collection('micy').doc('main').get();
+    if (snap.exists && snap.data() && snap.data().json) return snap.data().json;
+    // Firestore is empty (first run): migrate existing data from npoint ONCE.
+    try {
+      const r = await fetch(API_URL, { cache:'no-store' });
+      if (r.ok) {
+        const txt = await r.text();
+        const obj = JSON.parse(txt);
+        if (obj && (Array.isArray(obj.macchine) || Array.isArray(obj.saldi))) {
+          await fdb.collection('micy').doc('main').set({ json: txt, ts: Date.now(), by: 'migrazione npoint' });
+          return txt; // npoint stays untouched as a safety net
+        }
+      }
+    } catch(e) { console.warn('Migrazione npoint non riuscita', e); }
+    return JSON.stringify({ macchine:[], vendute:[], saldi:[], crediti:[], fatture:[], log:[], patrimHistory:[], clienti:[] });
+  }
+  const r = await fetch(API_URL, { cache:'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return await r.text();
+}
+
+// Persists the JSON string. On Firestore also writes a dated backup once/day.
+async function remoteSave(snapshot) {
+  if (fdb) {
+    await fdb.collection('micy').doc('main').set({ json: snapshot, ts: Date.now(), by: currentUser || '' });
+    const day = new Date().toISOString().split('T')[0];
+    if (day !== _lastBackupDay) {
+      _lastBackupDay = day;
+      try { await fdb.collection('micy').doc('backup_' + day).set({ json: snapshot, ts: Date.now() }); } catch(e){}
+    }
+    return;
+  }
+  const r = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: snapshot });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+}
 const USERS = { 'micy2024': 'Francy', 'micy2012': 'Raffaele' };
 
 // ── Fattura: dati fissi azienda (dal template) ──
@@ -862,35 +934,45 @@ let chartPatrim = null;
 // ══════════════════════════════════════════════════════
 // STORAGE — dead simple, synchronous, no network
 // ══════════════════════════════════════════════════════
-// ── SAVE + UNDO/REDO ──────────────────────────────────
+// ── SAVE + UNDO/REDO + BACKUP ─────────────────────────
 let _isSaving = false;
 let _saveQueued = false;
+let _loadOK = false;        // true only after a VALID load (remote or local)
+let _persistT = null;
 
 // History: snapshots of the whole db (JSON strings)
-let _committed = null;   // last persisted state
+let _committed = null;
 let _undo = [];
 let _redo = [];
 const HIST_MAX = 40;
 
-// Low-level: push current db to npoint. Used by save(), undo(), redo().
+function dbIsValid(o){
+  return !!o && typeof o === 'object' && !Array.isArray(o) &&
+         (Array.isArray(o.macchine) || Array.isArray(o.saldi) || Array.isArray(o.fatture));
+}
+
+// Instant local copy — the safety net against any remote failure.
+function backupLocal(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); } catch(e){}
+}
+
+// Remote push. REFUSES to write unless a valid load happened first,
+// so a failed/empty load can never overwrite good remote data.
 async function persist() {
+  if (!_loadOK) { toast('⚠️ Salvataggio remoto in pausa (dati non caricati). Premi ⟳', 'err'); return; }
+  if (!db || !db.macchine) return;
   if (_isSaving) { _saveQueued = true; return; }
-  _isSaving = true;
-  _saveQueued = false;
+  _isSaving = true; _saveQueued = false;
   const snapshot = JSON.stringify(db);
   const si = document.getElementById('saving-indicator');
   if (si) si.style.display = 'flex';
   try {
-    const r = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: snapshot
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
+    await remoteSave(snapshot);
+    backupLocal();
     toast('✓ Salvato', 'ok');
     renderLog();
   } catch(e) {
-    toast('❌ ERRORE SALVATAGGIO — Riprova!', 'err');
+    toast('❌ Errore salvataggio remoto (copia locale ok)', 'err');
     console.error('Save error:', e);
   } finally {
     _isSaving = false;
@@ -899,17 +981,20 @@ async function persist() {
   }
 }
 
-// Records the change in history, then persists.
-async function save() {
+function schedulePersist(){ clearTimeout(_persistT); _persistT = setTimeout(persist, 800); }
+
+// History + instant local backup + debounced remote save.
+function save() {
   const cur = JSON.stringify(db);
   if (_committed !== null && _committed !== cur) {
     _undo.push(_committed);
     if (_undo.length > HIST_MAX) _undo.shift();
-    _redo = [];            // a new action invalidates the redo chain
+    _redo = [];
   }
   _committed = cur;
   updateUndoButtons();
-  await persist();
+  backupLocal();
+  schedulePersist();
 }
 
 function updateUndoButtons() {
@@ -919,48 +1004,79 @@ function updateUndoButtons() {
   if (r) r.classList.toggle('disabled', _redo.length === 0);
 }
 
-async function undo() {
+function undo() {
   if (!_undo.length) return;
   _redo.push(JSON.stringify(db));
   const prev = _undo.pop();
-  db = JSON.parse(prev);
-  _committed = prev;
-  renderAll();
-  updateUndoButtons();
+  db = JSON.parse(prev); _committed = prev;
+  renderAll(); updateUndoButtons(); backupLocal(); schedulePersist();
   toast('↩️ Annullato', 'ok');
-  await persist();
 }
-
-async function redo() {
+function redo() {
   if (!_redo.length) return;
   _undo.push(JSON.stringify(db));
   const next = _redo.pop();
-  db = JSON.parse(next);
-  _committed = next;
-  renderAll();
-  updateUndoButtons();
+  db = JSON.parse(next); _committed = next;
+  renderAll(); updateUndoButtons(); backupLocal(); schedulePersist();
   toast('↪️ Ripristinato', 'ok');
-  await persist();
 }
 
-// Keyboard: Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (or Ctrl/Cmd+Y)
 document.addEventListener('keydown', e => {
   const mod = e.ctrlKey || e.metaKey;
   if (!mod) return;
   const k = e.key.toLowerCase();
   const typing = /^(input|textarea|select)$/i.test((e.target.tagName||''));
-  if (typing) return; // don't hijack text editing
+  if (typing) return;
   if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
   else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
 });
 
+// Download whole db as a JSON backup file.
+function exportBackup(){
+  try {
+    const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'micy_backup_' + new Date().toISOString().split('T')[0] + '.json';
+    a.click(); URL.revokeObjectURL(a.href);
+    toast('✓ Backup esportato', 'ok');
+  } catch(e){ toast('❌ Export fallito','err'); }
+}
+// Restore db from a JSON backup file.
+function importBackup(){
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/json,.json';
+  inp.onchange = () => {
+    const file = inp.files[0]; if (!file) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      let obj;
+      try { obj = JSON.parse(rd.result); } catch(e){ toast('❌ File non leggibile','err'); return; }
+      if (!dbIsValid(obj)) { toast('❌ File non valido','err'); return; }
+      if (!confirm('Sostituire TUTTI i dati attuali con il backup importato?')) return;
+      db = obj;
+      ['vendute','fatture','log','patrimHistory','clienti'].forEach(k=>{ if(!db[k]) db[k]=[]; });
+      if(!db.macchine) db.macchine=[];
+      if(!db.saldi||!db.saldi.length) db.saldi=defaultSaldi();
+      if(!db.crediti||!db.crediti.length) db.crediti=defaultCrediti();
+      _loadOK = true;
+      _committed = JSON.stringify(db); _undo=[]; _redo=[]; updateUndoButtons();
+      renderAll(); backupLocal(); persist();
+      toast('✓ Backup importato e salvato','ok');
+    };
+    rd.readAsText(file);
+  };
+  inp.click();
+}
+
 async function loadFromStorage() {
   try {
-    const r = await fetch(API_URL);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const loaded = await r.json();
+    initFirebase();
+    const txt = await remoteLoad();
+    let loaded;
+    try { loaded = JSON.parse(txt); } catch(pe){ throw new Error('JSON remoto corrotto'); }
+    if (!dbIsValid(loaded)) throw new Error('Struttura remota non valida');
     db = loaded;
-    // Ensure all arrays exist
     if (!db.macchine)      db.macchine      = [];
     if (!db.vendute)       db.vendute       = [];
     if (!db.saldi || !db.saldi.length)   db.saldi   = defaultSaldi();
@@ -969,22 +1085,31 @@ async function loadFromStorage() {
     if (!db.log)           db.log           = [];
     if (!db.patrimHistory) db.patrimHistory = [];
     if (!db.clienti)       db.clienti       = [];
-    if (db.macchine.length === 0) { seedMacchine(); await save(); }
+    _loadOK = true;
+    backupLocal();
     renderAll();
     _committed = JSON.stringify(db); _undo = []; _redo = []; updateUndoButtons();
-    maybeSnapshot(); // first open after 19:00 on a weekday records the day
+    maybeSnapshot();
     toast('✓ Caricato', 'ok');
   } catch(e) {
-    toast('❌ Errore connessione', 'err');
-    // Fallback to localStorage if available
+    console.error('Load error:', e);
+    _loadOK = false;   // blocks remote writes so we can't destroy good data
+    let recovered = false;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        db = JSON.parse(raw);
-        renderAll();
-        toast('⚠️ Dati locali (offline)', 'err');
+        const obj = JSON.parse(raw);
+        if (dbIsValid(obj)) {
+          db = obj;
+          ['vendute','fatture','log','patrimHistory','clienti'].forEach(k=>{ if(!db[k]) db[k]=[]; });
+          if(!db.macchine) db.macchine=[];
+          renderAll();
+          recovered = true;
+        }
       }
-    } catch(e2) {}
+    } catch(e2){}
+    if (recovered) toast('⚠️ Dati da backup locale. Salvataggio remoto in pausa, premi ⟳ per ricaricare', 'err');
+    else toast('❌ Impossibile leggere i dati. NON modificare nulla, premi ⟳ per riprovare', 'err');
   }
 }
 
