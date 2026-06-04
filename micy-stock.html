@@ -108,6 +108,25 @@ header{background:var(--surf);border-bottom:2px solid var(--navy);padding:12px 1
 .cli-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:9px}
 .cli-row textarea{flex:1}
 .cli-del{flex-shrink:0;background:#fbeaea;border:1px solid #f0caca;color:#b23b3b;border-radius:9px;padding:0 12px;align-self:stretch;cursor:pointer;font-size:.95rem}
+.scard-econ{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 13px 12px}
+.econ-cell{background:var(--navy-light);border:1px solid #d6e2f5;border-radius:10px;padding:9px 11px;cursor:pointer;transition:border-color .12s}
+.econ-cell:hover{border-color:var(--navy)}
+.econ-cell.econ-tot{cursor:default;background:#eef7f0;border-color:#cfe7d6}
+.econ-label{font-family:'Barlow Condensed',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:5px}
+.econ-val{font-family:'Barlow Condensed',sans-serif;font-size:1.25rem;font-weight:800;color:var(--navy);margin-top:2px}
+.econ-tot .econ-val{color:#1f7a4d}
+.econ-spese .econ-label::after{content:'▸';color:var(--navy);font-weight:700}
+.sp-count{background:var(--navy);color:#fff;border-radius:999px;font-size:.62rem;padding:1px 6px;font-weight:700}
+.spese-row,.spesa-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.spesa-date{font-size:.72rem;color:var(--muted);width:62px;flex-shrink:0;font-weight:600}
+.spesa-desc{flex:1}
+.spesa-imp{display:flex;align-items:center;gap:4px;width:92px;flex-shrink:0}
+.spesa-imp input{width:60px}
+.spesa-imp span{font-size:.78rem;color:var(--muted)}
+.spese-tot-row{text-align:right;font-size:.92rem;color:var(--text2);margin:10px 2px 4px}
+.spese-tot-row b{color:#1f7a4d;font-size:1.1rem;font-family:'Barlow Condensed',sans-serif}
+.cli-card{display:flex;gap:8px;align-items:flex-start;background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:11px;margin-bottom:10px;box-shadow:0 2px 8px rgba(10,42,94,.04)}
+.cli-card textarea{flex:1}
 .sfield.editing{background:var(--orange-light);outline:2px solid var(--orange);outline-offset:-1px;border-radius:7px}
 .sf-label{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;font-weight:600;margin-bottom:2px}
 .sf-val{font-size:.88rem;font-weight:700;color:var(--text)}
@@ -573,7 +592,7 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
 
 <!-- LOGIN -->
 <div id="login-screen">
-  <div class="logo">🚜 MICY</div>
+  <div class="logo">🏗 Micy Sro</div>
   <div class="logo-sub">Stock Macchine</div>
   <div class="login-box">
     <div class="field-label">Password</div>
@@ -587,16 +606,16 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
 <div id="app" class="hide">
   <header>
     <div class="header-inner">
-      <div class="h-logo">🚜 MICY</div>
+      <div class="h-logo">🏗 Micy Sro</div>
       <div class="h-right">
         <span class="h-user" id="h-user"></span>
         <button class="icon-btn" id="undo-btn" onclick="undo()" title="Annulla (Ctrl+Z)">↩︎</button>
         <button class="icon-btn" id="redo-btn" onclick="redo()" title="Ripristina (Ctrl+Shift+Z)">↪︎</button>
-        <button class="icon-btn" onclick="loadFromStorage()" id="sync-btn">⟳</button>
-        <button class="icon-btn" onclick="printStock()" title="Stampa Stock">📋</button>
-        <button class="icon-btn" onclick="printListino()" title="Stampa Listino">📄</button>
-        <button class="icon-btn" onclick="exportBackup()" title="Esporta backup">💾</button>
-        <button class="icon-btn" onclick="importBackup()" title="Importa backup">📥</button>
+        <button class="icon-btn" onclick="loadFromStorage()" id="sync-btn" title="Ricarica i dati">⟳ Aggiorna</button>
+        <button class="icon-btn" onclick="printStock()" title="Stampa lo stock in PDF">🖨 Stock</button>
+        <button class="icon-btn" onclick="printListino()" title="Stampa il listino in PDF">📄 Listino</button>
+        <button class="icon-btn" onclick="exportBackup()" title="Scarica una copia di sicurezza">💾 Backup</button>
+        <button class="icon-btn" onclick="importBackup()" title="Ripristina da un file di backup">📥 Ripristina</button>
         <button class="icon-btn primary" id="add-btn" onclick="handleAdd()">+ Aggiungi</button>
       </div>
     </div>
@@ -606,6 +625,7 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
       <div class="tab active" data-tab="stock" onclick="switchTab('stock',this)">📋 Stock</div>
       <div class="tab" data-tab="fatture" onclick="switchTab('fatture',this)">🧾 Fatture</div>
       <div class="tab" data-tab="patrimonio" onclick="switchTab('patrimonio',this)">💰 Patrimonio</div>
+      <div class="tab" data-tab="clienti" onclick="switchTab('clienti',this)">👤 Clienti</div>
       <div class="tab" data-tab="log" onclick="switchTab('log',this)">📋 Log</div>
     </div>
   </div>
@@ -660,6 +680,15 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
     </div>
   </div>
 
+  <!-- CLIENTI -->
+  <div class="page" id="page-clienti">
+    <div class="page-inner">
+      <div class="sec-title">👤 Anagrafica clienti</div>
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:12px">Testo libero, vai a capo come vuoi. Finisce in fattura esattamente così. Premi <b>+ Aggiungi</b> in alto per un nuovo cliente.</div>
+      <div id="clienti-page-list"></div>
+    </div>
+  </div>
+
   <!-- LOG -->
   <div class="page" id="page-log">
     <div class="page-inner">
@@ -686,15 +715,16 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
 </div>
 
 <!-- SELL MODAL -->
-<div class="overlay" id="clienti-overlay">
+<div class="overlay" id="spese-overlay">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">👤 Anagrafica clienti</div>
-    <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Testo libero, va a capo come vuoi. Finisce nella fattura esattamente così.</div>
-    <div id="clienti-list"></div>
+    <div class="modal-title">🧾 Spese macchina</div>
+    <div id="spese-machine-name" style="font-size:.85rem;color:var(--navy);font-weight:700;margin-bottom:12px"></div>
+    <div id="spese-list"></div>
+    <div class="spese-tot-row">Totale spese: <b id="spese-tot">€ 0k</b></div>
     <div class="modal-actions">
-      <button class="modal-btn save" onclick="addClienteRow()">＋ Nuovo cliente</button>
-      <button class="modal-btn cancel" onclick="closeClientiModal()">Chiudi</button>
+      <button class="modal-btn save" onclick="addSpesaVoce()">＋ Aggiungi spesa</button>
+      <button class="modal-btn cancel" onclick="closeSpese()">Chiudi</button>
     </div>
   </div>
 </div>
@@ -758,10 +788,7 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
       </div>
     </div>
     <div class="form-row">
-      <div class="form-label" style="display:flex;justify-content:space-between;align-items:center">
-        <span>Cliente *</span>
-        <span onclick="openClientiModal()" style="color:var(--navy);font-weight:700;cursor:pointer;font-size:.72rem">👤 Gestisci anagrafica</span>
-      </div>
+      <div class="form-label">Cliente *</div>
       <select class="form-input" id="sell-cliente-sel" onchange="onClienteSelect()">
         <option value="">— Nuovo cliente (scrivi sotto) —</option>
       </select>
@@ -1274,6 +1301,7 @@ function switchTab(name, el) {
   document.getElementById('add-btn').style.display = (name === 'log') ? 'none' : '';
   if (name === 'log') renderLog();
   if (name === 'fatture') renderFatture();
+  if (name === 'clienti') renderClienti();
   if (name === 'patrimonio') { maybeSnapshot(); }
 }
 
@@ -1282,6 +1310,7 @@ function renderAll() {
   renderPat();
   renderFatture();
   renderLog();
+  if (document.getElementById('clienti-page-list')) renderClienti();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1341,7 +1370,10 @@ function makeEditable(valEl, machineId, field, type) {
     machine[field] = val;
     if (sfield) sfield.classList.remove('editing');
     // Update display
-    const display = (field === 'ore' && val) ? Number(val).toLocaleString('it-IT') : (val || '—');
+    let display;
+    if (field === 'acq' || field === 'spe') display = '€ ' + (val || 0) + 'k';
+    else if (field === 'ore' && val) display = Number(val).toLocaleString('it-IT');
+    else display = (val || '—');
     valEl.textContent = display;
     // Update totale cell if needed
     if (field === 'acq' || field === 'spe') {
@@ -1350,20 +1382,15 @@ function makeEditable(valEl, machineId, field, type) {
         const totEl = card.querySelector('.sf-tot');
         if (totEl) {
           const tot = (parseFloat(machine.acq)||0) + (parseFloat(machine.spe)||0);
-          totEl.textContent = tot || '—';
+          totEl.textContent = '€ ' + tot + 'k';
         }
       }
       updateStockStats();
       renderPat();
     }
-    if (['acq','spe','anno','ore','location'].includes(field)) {
-      const lcard = document.querySelector('#listino-list [data-id="' + machineId + '"] .lf-costo');
-      if (lcard) {
-        const tot = (parseFloat(machine.acq)||0) + (parseFloat(machine.spe)||0);
-        lcard.textContent = fmtK(tot);
-      }
-    }
     save();
+    // Brand/Model affect ordering -> re-render to keep A->Z correct
+    if (field === 'brand' || field === 'modello') renderStock();
   }
   inp.addEventListener('blur', commit);
   inp.addEventListener('keydown', e => {
@@ -1445,11 +1472,13 @@ function renderStock() {
   const q = (document.getElementById('stock-search')||{value:''}).value.toLowerCase();
   const sortBy = (document.getElementById('stock-sort')||{value:'az'}).value;
 
-  let list = db.macchine.filter(m => !q || m.modello.toLowerCase().includes(q));
+  let list = db.macchine.filter(m => !q || ((m.brand||'')+' '+(m.modello||'')).toLowerCase().includes(q));
   list = [...list].sort((a,b) => {
     if (sortBy==='prezzo-desc') return ((parseFloat(b.acq)||0)+(parseFloat(b.spe)||0)) - ((parseFloat(a.acq)||0)+(parseFloat(a.spe)||0));
     if (sortBy==='prezzo-asc')  return ((parseFloat(a.acq)||0)+(parseFloat(a.spe)||0)) - ((parseFloat(b.acq)||0)+(parseFloat(b.spe)||0));
-    return (a.modello||'').localeCompare(b.modello||'');
+    // default A->Z: brand first, then model
+    return (a.brand||'').localeCompare(b.brand||'', 'it', {sensitivity:'base'})
+        || (a.modello||'').localeCompare(b.modello||'', 'it', {sensitivity:'base'});
   });
 
   updateStockStats();
@@ -1460,13 +1489,14 @@ function renderStock() {
   }
 
   document.getElementById('stock-list').innerHTML = list.map((m,i) => {
-    const tot = (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0);
+    recalcSpese(m);
+    const acq = parseFloat(m.acq)||0, spe = parseFloat(m.spe)||0, tot = acq + spe;
+    const nSpese = (m.speseList||[]).length;
     const st = m.stato || 'Disponibile';
     const stClass = st==='A noleggio' ? 'st-rent' : st.indexOf('Venduta')===0 ? 'st-sold' : 'st-ok';
     return `<div class="scard" data-id="${m.id}">
       <div class="scard-top">
         <span class="scard-tag ${stClass}">${st}</span>
-        <button class="info-btn" onclick="openDetail('${m.id}')">ⓘ</button>
       </div>
       <div class="scard-fields">
         <div class="sfield" onclick="editSfield(this,'${m.id}','brand','text')">
@@ -1479,14 +1509,16 @@ function renderStock() {
           <div class="sf-label">Ore</div><div class="sf-val">${m.ore?Number(m.ore).toLocaleString('it-IT'):'—'}</div></div>
         <div class="sfield" onclick="editSfield(this,'${m.id}','location','text')">
           <div class="sf-label">Location</div><div class="sf-val">${m.location||'—'}</div></div>
-        <div class="sfield" onclick="editSfield(this,'${m.id}','acq','number')">
-          <div class="sf-label">Acquisto k€</div><div class="sf-val acc">${m.acq||'—'}</div></div>
-        <div class="sfield" onclick="editSfield(this,'${m.id}','spe','number')">
-          <div class="sf-label">Spese k€</div><div class="sf-val">${m.spe||'—'}</div></div>
-        <div class="sfield sf-readonly">
-          <div class="sf-label">Totale k€</div><div class="sf-val acc sf-tot">${tot||'—'}</div></div>
         <div class="sfield sf-note" onclick="editSfield(this,'${m.id}','note','text')">
           <div class="sf-label">Note</div><div class="sf-val" style="color:var(--text2);font-weight:500">${m.note||'—'}</div></div>
+      </div>
+      <div class="scard-econ">
+        <div class="econ-cell" onclick="editSfield(this,'${m.id}','acq','number')">
+          <div class="econ-label">Acquisto</div><div class="econ-val sf-val">€ ${acq}k</div></div>
+        <div class="econ-cell econ-spese" onclick="openSpese('${m.id}')">
+          <div class="econ-label">Spese ${nSpese?`<span class="sp-count">${nSpese}</span>`:''}</div><div class="econ-val sf-spe">€ ${spe}k</div></div>
+        <div class="econ-cell econ-tot">
+          <div class="econ-label">Totale</div><div class="econ-val sf-tot">€ ${tot}k</div></div>
       </div>
       <div class="scard-actions">
         <button class="act-btn sell" onclick="openSell('${m.id}')">💰 Vendi / Fattura</button>
@@ -1496,8 +1528,68 @@ function renderStock() {
   }).join('');
 }
 
+// Spese list: m.speseList = [{id, data, testo, importo(k)}]; m.spe = sum.
+function recalcSpese(m) {
+  if (Array.isArray(m.speseList) && m.speseList.length) {
+    m.spe = m.speseList.reduce((s,x) => s + (parseFloat(x.importo)||0), 0);
+  }
+}
+let _speseMid = null;
+function openSpese(mid){
+  _speseMid = mid;
+  const m = db.macchine.find(x=>x.id===mid); if(!m) return;
+  if(!Array.isArray(m.speseList)) m.speseList = [];
+  // migrate a pre-existing manual "spe" value into the list so it isn't lost
+  if(!m.speseList.length && (parseFloat(m.spe)||0) > 0){
+    m.speseList.push({id:'sp'+Date.now(), data:new Date().toISOString().split('T')[0], testo:'Spesa iniziale', importo: parseFloat(m.spe)||0});
+  }
+  document.getElementById('spese-machine-name').textContent = (m.brand? m.brand+' ':'') + (m.modello||'');
+  renderSpeseList();
+  document.getElementById('spese-overlay').classList.add('open');
+}
+function closeSpese(){ document.getElementById('spese-overlay').classList.remove('open'); renderStock(); renderPat(); }
+function fmtSpDate(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+function renderSpeseList(){
+  const m = db.macchine.find(x=>x.id===_speseMid); if(!m) return;
+  const box = document.getElementById('spese-list');
+  if(!m.speseList.length){
+    box.innerHTML='<div style="text-align:center;color:var(--muted);padding:16px;font-size:.85rem">Nessuna spesa ancora.<br>Premi \u201CAggiungi spesa\u201D.</div>';
+  } else {
+    box.innerHTML = m.speseList.map(s=>`
+      <div class="spesa-row" data-sid="${s.id}">
+        <span class="spesa-date">${fmtSpDate(s.data)}</span>
+        <input class="form-input spesa-desc" value="${escapeHtml(s.testo)}" placeholder="Descrizione" oninput="updateSpesaVoce('${s.id}','testo',this.value)">
+        <div class="spesa-imp"><input class="form-input" type="number" inputmode="decimal" step="0.5" value="${s.importo||''}" placeholder="k" oninput="updateSpesaVoce('${s.id}','importo',this.value)"><span>k\u20AC</span></div>
+        <button class="cli-del" onclick="deleteSpesaVoce('${s.id}')" title="Elimina">🗑</button>
+      </div>`).join('');
+  }
+  recalcSpese(m);
+  document.getElementById('spese-tot').textContent = '€ ' + (m.spe||0) + 'k';
+}
+function addSpesaVoce(){
+  const m = db.macchine.find(x=>x.id===_speseMid); if(!m) return;
+  if(!Array.isArray(m.speseList)) m.speseList=[];
+  m.speseList.push({id:'sp'+Date.now(), data:new Date().toISOString().split('T')[0], testo:'', importo:0});
+  renderSpeseList(); save();
+}
+function updateSpesaVoce(sid, field, val){
+  const m = db.macchine.find(x=>x.id===_speseMid); if(!m) return;
+  const s = (m.speseList||[]).find(x=>x.id===sid); if(!s) return;
+  s[field] = field==='importo' ? (parseFloat(val)||0) : val;
+  recalcSpese(m);
+  document.getElementById('spese-tot').textContent = '€ ' + (m.spe||0) + 'k';
+  updateStockStats();
+  clearTimeout(window._spSave); window._spSave=setTimeout(()=>save(),500);
+}
+function deleteSpesaVoce(sid){
+  const m = db.macchine.find(x=>x.id===_speseMid); if(!m) return;
+  m.speseList = (m.speseList||[]).filter(x=>x.id!==sid);
+  recalcSpese(m); renderSpeseList(); save();
+}
+
 function handleAdd() {
   if (currentTab === 'fatture') { openInvoiceFree(); return; }
+  if (currentTab === 'clienti') { addClienteRow(); return; }
   openAddModal();
 }
 function openAddModal() {
@@ -1581,21 +1673,20 @@ function onClienteSelect() {
 }
 
 function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function openClientiModal(){ renderClientiList(); document.getElementById('clienti-overlay').classList.add('open'); }
-function closeClientiModal(){ document.getElementById('clienti-overlay').classList.remove('open'); refreshClienteSelect(); }
-function renderClientiList(){
+function renderClienti(){
   if(!db.clienti) db.clienti=[];
-  const box=document.getElementById('clienti-list');
-  if(!db.clienti.length){ box.innerHTML='<div style="text-align:center;color:var(--muted);padding:22px;font-size:.85rem">Nessun cliente in anagrafica.<br>Premi \u201CNuovo cliente\u201D per aggiungerne uno.</div>'; return; }
+  const box=document.getElementById('clienti-page-list');
+  if(!box) return;
+  if(!db.clienti.length){ box.innerHTML='<div class="empty">Nessun cliente in anagrafica. Premi + Aggiungi in alto.</div>'; return; }
   box.innerHTML = db.clienti.map(c=>`
-    <div class="cli-row">
-      <textarea class="form-input" maxlength="200" rows="4" oninput="updateClienteBlocco('${c.id}', this.value)" style="white-space:pre-wrap;resize:vertical;font-family:inherit;line-height:1.4">${escapeHtml(c.blocco)}</textarea>
-      <button class="cli-del" onclick="deleteCliente('${c.id}')" title="Elimina">🗑</button>
+    <div class="cli-card">
+      <textarea class="form-input" maxlength="200" rows="5" oninput="updateClienteBlocco('${c.id}', this.value)" style="white-space:pre-wrap;resize:vertical;font-family:inherit;line-height:1.45">${escapeHtml(c.blocco)}</textarea>
+      <button class="cli-del" onclick="deleteCliente('${c.id}')" title="Elimina cliente">🗑</button>
     </div>`).join('');
 }
-function addClienteRow(){ if(!db.clienti) db.clienti=[]; db.clienti.push({id:'cl'+Date.now(), blocco:''}); save(); renderClientiList(); }
+function addClienteRow(){ if(!db.clienti) db.clienti=[]; db.clienti.unshift({id:'cl'+Date.now(), blocco:''}); save(); renderClienti(); toast('✓ Cliente aggiunto, scrivi i dati','ok'); }
 function updateClienteBlocco(id,val){ const c=(db.clienti||[]).find(x=>x.id===id); if(c){ c.blocco=val; clearTimeout(window._cliSave); window._cliSave=setTimeout(()=>save(),600); } }
-function deleteCliente(id){ if(!confirm('Eliminare questo cliente?')) return; db.clienti=(db.clienti||[]).filter(x=>x.id!==id); save(); renderClientiList(); toast('✓ Cliente eliminato','ok'); }
+function deleteCliente(id){ if(!confirm('Eliminare questo cliente?')) return; db.clienti=(db.clienti||[]).filter(x=>x.id!==id); save(); renderClienti(); toast('✓ Cliente eliminato','ok'); }
 
 function getSellType() {
   const el = document.querySelector('input[name="selltype"]:checked');
@@ -1636,7 +1727,7 @@ function openSell(id) {
   sellId = id;
   resetSellForm();
   const costo = (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0);
-  document.getElementById('sell-name').textContent = m.modello;
+  document.getElementById('sell-name').textContent = ((m.brand? m.brand+' ':'') + (m.modello||'')).trim() || '—';
   document.getElementById('sell-cost').textContent = 'Costo totale: ' + fmtK(costo);
   document.getElementById('sell-cost-row').style.display = 'none'; // cost comes from machine
   document.getElementById('sell-brand').value = m.brand || '';
@@ -1766,63 +1857,67 @@ function generaFatturaPDF(f) {
   const doc = new jsPDF({ unit:'mm', format:'a4' });
   const W = 210, M = 20, CW = W - 2*M;
   const wrapW = CW - 8;
+  const BODY = 11;      // one body size everywhere
+  const BIG = 13;       // title + total only
+  const FONT = 'helvetica';
 
   // logo (horizontal)
   try { doc.addImage(MICY_LOGO, 'PNG', M, 16, 54, 27); } catch(e) {}
 
   // seller block under logo
-  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(45);
+  doc.setFont(FONT,'normal'); doc.setFontSize(BODY); doc.setTextColor(45);
   let sy = 50;
-  SELLER.lines.forEach(l => { doc.text(l, M, sy); sy += 5; });
+  SELLER.lines.forEach(l => { doc.text(l, M, sy); sy += 5.4; });
 
-  // customer block (right) - pushed lower
-  const RX = W - M - 76;
-  doc.setFontSize(9.5); doc.setTextColor(110);
+  // customer block (right)
+  const RX = W - M - 78;
+  doc.setFontSize(BODY); doc.setTextColor(110);
   doc.text('Esteemed', RX, 52);
-  let cy = 58;
+  let cy = 58.5;
   const custLines = (f.clienteBlocco||f.cliente||'').split('\n');
   custLines.forEach((l,i) => {
-    doc.setFont('helvetica', i===0?'bold':'normal');
-    doc.setTextColor(i===0?20:60);
-    doc.text(l, RX, cy); cy += 5;
+    doc.setFont(FONT, i===0?'bold':'normal');
+    doc.setTextColor(i===0?20:55);
+    doc.text(l, RX, cy); cy += 5.4;
   });
 
-  // title - well below both blocks
+  // title
   let y = Math.max(sy, cy) + 16;
-  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(20);
+  doc.setFont(FONT,'bold'); doc.setFontSize(BIG); doc.setTextColor(20);
   const titlePrefix = f.proforma ? 'Proforma Invoice' : 'Invoice';
   doc.text(titlePrefix + ' N\u00B0 ' + f.nr + ' of ' + fmtInvoiceDate(f.data), M, y);
 
   y += 12;
-  doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(30);
+  doc.setFont(FONT,'normal'); doc.setFontSize(BODY); doc.setTextColor(30);
   const isRent = f.tipo === 'noleggio';
   doc.text(isRent ? 'Rental of the following machine:' : 'Sale of the following machine:', M, y);
   if (isRent && (f.periodoFrom || f.periodoTo)) {
-    y += 7; doc.setFont('helvetica','bold');
+    y += 7; doc.setFont(FONT,'bold');
     doc.text('Rental period: ' + fmtInvoiceDate(f.periodoFrom) + ' - ' + fmtInvoiceDate(f.periodoTo), M+8, y);
-    doc.setFont('helvetica','normal');
+    doc.setFont(FONT,'normal');
   }
 
-  // machine data block
-  y += 11; doc.setFontSize(10.5);
+  // machine data
+  y += 11; doc.setFontSize(BODY);
   const rows = [['Brand:', f.brand], ['Model:', f.model], ['Serial n:', f.serial], ['Year:', f.year]].filter(r => r[1]);
   rows.forEach(r => {
-    doc.setFont('helvetica','bold'); doc.text(r[0], M + 8, y);
-    doc.setFont('helvetica','normal'); doc.text(String(r[1]), M + 42, y);
+    doc.setFont(FONT,'bold'); doc.text(r[0], M + 8, y);
+    doc.setFont(FONT,'normal'); doc.text(String(r[1]), M + 46, y);
     y += 7;
   });
 
   // total
   y += 8;
-  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(20);
-  doc.text('TOTAL', W - M - 66, y);
-  doc.text(fmtEuroFull(f.importo), W - M - 44, y);
+  doc.setFont(FONT,'bold'); doc.setFontSize(BIG); doc.setTextColor(20);
+  doc.text('TOTAL', W - M - 70, y);
+  doc.text(fmtEuroFull(f.importo), W - M - 46, y);
 
-  // detail lines (wrapped)
-  y += 14; doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(40);
-  function para(text) {
+  // detail lines (wrapped, same body size)
+  y += 14; doc.setFont(FONT,'normal'); doc.setFontSize(BODY); doc.setTextColor(40);
+  function para(text, bold) {
+    doc.setFont(FONT, bold ? 'bold' : 'normal');
     const lines = doc.splitTextToSize(text, wrapW);
-    lines.forEach(ln => { doc.text(ln, M + 8, y); y += 5.5; });
+    lines.forEach(ln => { doc.text(ln, M + 8, y); y += 6; });
   }
   if (f.note) para('Equipped with: ' + f.note);
   if (f.incoterms) para(f.incoterms);
@@ -1830,25 +1925,25 @@ function generaFatturaPDF(f) {
   para('Payment: ' + (f.paymentTerms && f.paymentTerms.trim() ? f.paymentTerms.trim() : 'on receipt of invoice'));
 
   // tax line
-  y += 7; doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(20);
+  y += 7; doc.setFont(FONT,'bold'); doc.setFontSize(BODY); doc.setTextColor(20);
   doc.text(SELLER.taxline, M, y);
 
-  // bank details - pushed lower, compact
-  y += 14; doc.setFontSize(10.5); doc.setTextColor(20);
+  // bank details (compact table, same body size)
+  y += 14; doc.setFont(FONT,'bold'); doc.setFontSize(BODY); doc.setTextColor(20);
   doc.text('Bank details:', M, y); y += 4;
-  doc.setFont('helvetica','normal'); doc.setFontSize(9);
-  const colW = [36, 72], rh = 7;
+  doc.setFont(FONT,'normal');
+  const colW = [38, 74], rh = 8;
   doc.setDrawColor(200);
   SELLER.bank.forEach(([k,v]) => {
     doc.rect(M, y, colW[0], rh); doc.rect(M+colW[0], y, colW[1], rh);
-    doc.setFont('helvetica','bold'); doc.text(k, M+2.5, y+4.8);
-    doc.setFont('helvetica','normal'); doc.text(v, M+colW[0]+2.5, y+4.8);
+    doc.setFont(FONT,'bold'); doc.text(k, M+2.5, y+5.4);
+    doc.setFont(FONT,'normal'); doc.text(v, M+colW[0]+2.5, y+5.4);
     y += rh;
   });
 
   // footer
-  y += 12; doc.setFontSize(8.5); doc.setTextColor(95);
-  doc.text('Currency: EUR. Price net, not subject to VAT.', M, y); y += 5.5;
+  y += 12; doc.setFontSize(BODY); doc.setTextColor(95);
+  doc.text('Currency: EUR. Price net, not subject to VAT.', M, y); y += 6;
   doc.text(doc.splitTextToSize(SELLER.registry, CW), M, y);
 
   const tag = (f.proforma ? 'Proforma_' : 'Invoice_') + f.nr + '_' + f.cliente.replace(/[^a-zA-Z0-9]+/g,'_');
@@ -2617,31 +2712,4 @@ document.getElementById('sell-overlay').addEventListener('click', e => { if(e.ta
 
 </script>
 </body>
-</html>  <!-- ══ FATTURE ══ -->
-  <div class="page" id="page-fatture">
-    <div class="page-inner">
-
-      <!-- Summary stats -->
-      <div class="fatture-summary">
-        <div class="fat-stat neu"><div class="fsv" id="fat-tot">0</div><div class="fsl">Totale</div></div>
-        <div class="fat-stat green"><div class="fsv" id="fat-incassato">€0</div><div class="fsl">Incassato</div></div>
-        <div class="fat-stat red"><div class="fsv" id="fat-attesa">€0</div><div class="fsl">Da incassare</div></div>
-        <div class="fat-stat yellow"><div class="fsv" id="fat-parziale">€0</div><div class="fsl">Parziale</div></div>
-      </div>
-
-      <!-- Toolbar -->
-      <div class="table-toolbar" style="margin-bottom:12px">
-        <input class="tbl-search" id="fat-search" placeholder="🔍 Nr fattura, cliente..." oninput="renderFatture()">
-        <select class="sort-select" id="fat-filter" onchange="renderFatture()" style="flex-shrink:0">
-          <option value="tutti">Tutte</option>
-          <option value="pagata">✅ Pagate</option>
-          <option value="parziale">🟡 Parziale</option>
-          <option value="attesa">🔴 Da pagare</option>
-        </select>
-      </div>
-
-      <div id="fatture-list"><div class="empty">Nessuna fattura ancora.</div></div>
-    </div>
-  </div>
-
-
+</html>
