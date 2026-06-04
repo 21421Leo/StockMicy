@@ -103,6 +103,9 @@ header{background:var(--surf);border-bottom:2px solid var(--navy);padding:12px 1
 .seg span{display:block;text-align:center;padding:10px;border:1.5px solid var(--border);border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.95rem;color:var(--muted);background:var(--surf2);transition:.12s}
 .seg input:checked + span{border-color:var(--navy);background:var(--navy-light);color:var(--navy)}
 .rent-tag{font-family:'Barlow Condensed',sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.6px;padding:2px 7px;border-radius:5px;background:var(--orange-light);color:var(--orange)}
+.cli-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:9px}
+.cli-row textarea{flex:1}
+.cli-del{flex-shrink:0;background:#fbeaea;border:1px solid #f0caca;color:#b23b3b;border-radius:9px;padding:0 12px;align-self:stretch;cursor:pointer;font-size:.95rem}
 .sfield.editing{background:var(--orange-light);outline:2px solid var(--orange);outline-offset:-1px;border-radius:7px}
 .sf-label{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;font-weight:600;margin-bottom:2px}
 .sf-val{font-size:.88rem;font-weight:700;color:var(--text)}
@@ -679,6 +682,18 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
 </div>
 
 <!-- SELL MODAL -->
+<div class="overlay" id="clienti-overlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👤 Anagrafica clienti</div>
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Testo libero, va a capo come vuoi. Finisce nella fattura esattamente così.</div>
+    <div id="clienti-list"></div>
+    <div class="modal-actions">
+      <button class="modal-btn save" onclick="addClienteRow()">＋ Nuovo cliente</button>
+      <button class="modal-btn cancel" onclick="closeClientiModal()">Chiudi</button>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="add-overlay">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -739,7 +754,10 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
       </div>
     </div>
     <div class="form-row">
-      <div class="form-label">Cliente *</div>
+      <div class="form-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Cliente *</span>
+        <span onclick="openClientiModal()" style="color:var(--navy);font-weight:700;cursor:pointer;font-size:.72rem">👤 Gestisci anagrafica</span>
+      </div>
       <select class="form-input" id="sell-cliente-sel" onchange="onClienteSelect()">
         <option value="">— Nuovo cliente (scrivi sotto) —</option>
       </select>
@@ -781,6 +799,10 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
     <div class="form-row">
       <div class="form-label">Equipped with / Note</div>
       <input class="form-input" id="sell-note" placeholder="es. 3 buckets + 1 ripper (facoltativo)">
+    </div>
+    <div class="form-row">
+      <div class="form-label">Payment terms</div>
+      <input class="form-input" id="sell-payment" placeholder="on receipt of invoice (modificabile)">
     </div>
     <div class="modal-actions">
       <button class="modal-btn save" onclick="confirmSell()">✅ Conferma e scarica PDF</button>
@@ -1433,6 +1455,23 @@ function onClienteSelect() {
   else { save.checked = true; }
 }
 
+function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function openClientiModal(){ renderClientiList(); document.getElementById('clienti-overlay').classList.add('open'); }
+function closeClientiModal(){ document.getElementById('clienti-overlay').classList.remove('open'); refreshClienteSelect(); }
+function renderClientiList(){
+  if(!db.clienti) db.clienti=[];
+  const box=document.getElementById('clienti-list');
+  if(!db.clienti.length){ box.innerHTML='<div style="text-align:center;color:var(--muted);padding:22px;font-size:.85rem">Nessun cliente in anagrafica.<br>Premi \u201CNuovo cliente\u201D per aggiungerne uno.</div>'; return; }
+  box.innerHTML = db.clienti.map(c=>`
+    <div class="cli-row">
+      <textarea class="form-input" maxlength="200" rows="4" oninput="updateClienteBlocco('${c.id}', this.value)" style="white-space:pre-wrap;resize:vertical;font-family:inherit;line-height:1.4">${escapeHtml(c.blocco)}</textarea>
+      <button class="cli-del" onclick="deleteCliente('${c.id}')" title="Elimina">🗑</button>
+    </div>`).join('');
+}
+function addClienteRow(){ if(!db.clienti) db.clienti=[]; db.clienti.push({id:'cl'+Date.now(), blocco:''}); save(); renderClientiList(); }
+function updateClienteBlocco(id,val){ const c=(db.clienti||[]).find(x=>x.id===id); if(c){ c.blocco=val; clearTimeout(window._cliSave); window._cliSave=setTimeout(()=>save(),600); } }
+function deleteCliente(id){ if(!confirm('Eliminare questo cliente?')) return; db.clienti=(db.clienti||[]).filter(x=>x.id!==id); save(); renderClientiList(); toast('✓ Cliente eliminato','ok'); }
+
 function getSellType() {
   const el = document.querySelector('input[name="selltype"]:checked');
   return el ? el.value : 'vendita';
@@ -1462,6 +1501,7 @@ function resetSellForm() {
   document.getElementById('sell-price').value = '';
   document.getElementById('sell-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('sell-note').value = '';
+  document.getElementById('sell-payment').value = '';
   document.getElementById('margin-preview').style.display = 'none';
 }
 
@@ -1527,9 +1567,17 @@ function confirmSell() {
     if (!pFrom || !pTo) { toast('⚠️ Inserisci il periodo di noleggio', 'err'); return; }
   }
 
-  if (document.getElementById('sell-cliente-save').checked) {
-    const exists = (db.clienti||[]).some(c => c.blocco.trim() === blocco.trim());
-    if (!exists) { if (!db.clienti) db.clienti = []; db.clienti.push({ id:'cl'+Date.now(), blocco }); }
+  // Upsert client into anagrafica (text-only blocks)
+  if (!db.clienti) db.clienti = [];
+  const selCliId = document.getElementById('sell-cliente-sel').value;
+  if (selCliId) {
+    const c = db.clienti.find(x => x.id === selCliId);
+    if (c && c.blocco.trim() !== blocco.trim()) c.blocco = blocco; // keep edits to existing
+  } else if (document.getElementById('sell-cliente-save').checked) {
+    if (!db.clienti.some(c => c.blocco.trim() === blocco.trim())) {
+      db.clienti.push({ id: 'cl' + Date.now(), blocco });
+      toast('✓ Cliente salvato in anagrafica', 'ok');
+    }
   }
 
   const acq = m ? m.acq : (parseFloat(document.getElementById('sell-acq').value)||0);
@@ -1547,6 +1595,7 @@ function confirmSell() {
     data: document.getElementById('sell-date').value,
     periodoFrom: pFrom, periodoTo: pTo,
     note: document.getElementById('sell-note').value.trim(),
+    paymentTerms: document.getElementById('sell-payment').value.trim(),
     brand:    document.getElementById('sell-brand').value.trim(),
     model:    document.getElementById('sell-model').value.trim(),
     serial:   document.getElementById('sell-serial').value.trim(),
@@ -1590,89 +1639,96 @@ function fmtInvoiceDate(iso) {
 function generaFatturaPDF(f) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:'mm', format:'a4' });
-  const W = 210, M = 18;
-  let y = 14;
+  const W = 210, M = 20, CW = W - 2*M;
+  const wrapW = CW - 8;
 
   // logo (horizontal)
-  try { doc.addImage(MICY_LOGO, 'PNG', M, y, 52, 26); } catch(e) {}
+  try { doc.addImage(MICY_LOGO, 'PNG', M, 16, 54, 27); } catch(e) {}
 
   // seller block under logo
-  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(40);
-  let sy = y + 31;
-  SELLER.lines.forEach(l => { doc.text(l, M, sy); sy += 4.4; });
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(45);
+  let sy = 50;
+  SELLER.lines.forEach(l => { doc.text(l, M, sy); sy += 5; });
 
-  // customer block (right), printed verbatim with line breaks
-  doc.setFontSize(9); doc.setTextColor(90);
-  doc.text('Esteemed', W - M - 70, y + 14);
-  doc.setTextColor(20); doc.setFont('helvetica','bold');
+  // customer block (right) - pushed lower
+  const RX = W - M - 76;
+  doc.setFontSize(9.5); doc.setTextColor(110);
+  doc.text('Esteemed', RX, 52);
+  let cy = 58;
   const custLines = (f.clienteBlocco||f.cliente||'').split('\n');
-  let cy = y + 19;
-  custLines.forEach((l,i) => { doc.setFont('helvetica', i===0?'bold':'normal'); doc.text(l, W - M - 70, cy); cy += 4.6; });
+  custLines.forEach((l,i) => {
+    doc.setFont('helvetica', i===0?'bold':'normal');
+    doc.setTextColor(i===0?20:60);
+    doc.text(l, RX, cy); cy += 5;
+  });
 
-  // title: Invoice / Proforma Invoice N° X of date
-  y = Math.max(sy, cy) + 8;
-  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(20);
+  // title - well below both blocks
+  let y = Math.max(sy, cy) + 16;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(20);
   const titlePrefix = f.proforma ? 'Proforma Invoice' : 'Invoice';
-  doc.text(`${titlePrefix} N° ${f.nr} of ${fmtInvoiceDate(f.data)}`, M, y);
+  doc.text(titlePrefix + ' N\u00B0 ' + f.nr + ' of ' + fmtInvoiceDate(f.data), M, y);
 
-  y += 9;
-  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  y += 12;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(30);
   const isRent = f.tipo === 'noleggio';
   doc.text(isRent ? 'Rental of the following machine:' : 'Sale of the following machine:', M, y);
   if (isRent && (f.periodoFrom || f.periodoTo)) {
-    y += 5.5; doc.setFont('helvetica','bold');
-    doc.text(`Rental period: ${fmtInvoiceDate(f.periodoFrom)} - ${fmtInvoiceDate(f.periodoTo)}`, M, y);
+    y += 7; doc.setFont('helvetica','bold');
+    doc.text('Rental period: ' + fmtInvoiceDate(f.periodoFrom) + ' - ' + fmtInvoiceDate(f.periodoTo), M+8, y);
     doc.setFont('helvetica','normal');
   }
 
   // machine data block
-  y += 8; doc.setFontSize(10);
-  const rows = [
-    ['Brand:', f.brand], ['Model:', f.model],
-    ['Serial n:', f.serial], ['Year:', f.year]
-  ].filter(r => r[1]);
+  y += 11; doc.setFontSize(10.5);
+  const rows = [['Brand:', f.brand], ['Model:', f.model], ['Serial n:', f.serial], ['Year:', f.year]].filter(r => r[1]);
   rows.forEach(r => {
     doc.setFont('helvetica','bold'); doc.text(r[0], M + 8, y);
-    doc.setFont('helvetica','normal'); doc.text(String(r[1]), M + 40, y);
-    y += 5.5;
+    doc.setFont('helvetica','normal'); doc.text(String(r[1]), M + 42, y);
+    y += 7;
   });
 
   // total
-  y += 6;
-  doc.setFont('helvetica','bold'); doc.setFontSize(12);
-  doc.text('TOTAL', W - M - 60, y);
-  doc.text(fmtEuroFull(f.importo), W - M - 38, y);
+  y += 8;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(20);
+  doc.text('TOTAL', W - M - 66, y);
+  doc.text(fmtEuroFull(f.importo), W - M - 44, y);
 
-  // extra fixed lines
-  y += 10; doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(40);
-  if (f.note) { doc.text('Equipped with: ' + f.note, M + 8, y); y += 5; }
-  if (f.incoterms) { doc.text(f.incoterms, M + 8, y); y += 5; }
-  doc.text('No warranty implied or given', M + 8, y); y += 5;
-  doc.text('Payment: on receipt of invoice', M + 8, y); y += 9;
+  // detail lines (wrapped)
+  y += 14; doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(40);
+  function para(text) {
+    const lines = doc.splitTextToSize(text, wrapW);
+    lines.forEach(ln => { doc.text(ln, M + 8, y); y += 5.5; });
+  }
+  if (f.note) para('Equipped with: ' + f.note);
+  if (f.incoterms) para(f.incoterms);
+  para('No warranty implied or given');
+  para('Payment: ' + (f.paymentTerms && f.paymentTerms.trim() ? f.paymentTerms.trim() : 'on receipt of invoice'));
 
   // tax line
-  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(20);
-  doc.text(SELLER.taxline, M, y); y += 9;
+  y += 7; doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(20);
+  doc.text(SELLER.taxline, M, y);
 
-  // bank details table
-  doc.setFontSize(10); doc.text('Bank details:', M, y); y += 2;
+  // bank details - pushed lower, compact
+  y += 14; doc.setFontSize(10.5); doc.setTextColor(20);
+  doc.text('Bank details:', M, y); y += 4;
   doc.setFont('helvetica','normal'); doc.setFontSize(9);
-  const colW = [38, 110];
+  const colW = [36, 72], rh = 7;
+  doc.setDrawColor(200);
   SELLER.bank.forEach(([k,v]) => {
-    y += 6;
-    doc.rect(M, y-4, colW[0], 6); doc.rect(M+colW[0], y-4, colW[1], 6);
-    doc.setFont('helvetica','bold'); doc.text(k, M+2, y);
-    doc.setFont('helvetica','normal'); doc.text(v, M+colW[0]+2, y);
+    doc.rect(M, y, colW[0], rh); doc.rect(M+colW[0], y, colW[1], rh);
+    doc.setFont('helvetica','bold'); doc.text(k, M+2.5, y+4.8);
+    doc.setFont('helvetica','normal'); doc.text(v, M+colW[0]+2.5, y+4.8);
+    y += rh;
   });
 
-  // registry footer
-  y += 12; doc.setFontSize(8.5); doc.setTextColor(90);
-  doc.text('Currency: EUR. Price net, not subject to VAT.', M, y); y += 5;
-  doc.text(doc.splitTextToSize(SELLER.registry, W - 2*M), M, y);
+  // footer
+  y += 12; doc.setFontSize(8.5); doc.setTextColor(95);
+  doc.text('Currency: EUR. Price net, not subject to VAT.', M, y); y += 5.5;
+  doc.text(doc.splitTextToSize(SELLER.registry, CW), M, y);
 
   const tag = (f.proforma ? 'Proforma_' : 'Invoice_') + f.nr + '_' + f.cliente.replace(/[^a-zA-Z0-9]+/g,'_');
   doc.save(tag + '.pdf');
-  toast('✓ PDF generato', 'ok');
+  toast('\u2713 PDF generato', 'ok');
 }
 
 // ══════════════════════════════════════════════════════
