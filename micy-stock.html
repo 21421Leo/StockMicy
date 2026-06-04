@@ -127,6 +127,9 @@ header{background:var(--surf);border-bottom:2px solid var(--navy);padding:12px 1
 .spese-tot-row b{color:#1f7a4d;font-size:1.1rem;font-family:'Barlow Condensed',sans-serif}
 .cli-card{display:flex;gap:8px;align-items:flex-start;background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:11px;margin-bottom:10px;box-shadow:0 2px 8px rgba(10,42,94,.04)}
 .cli-card textarea{flex:1}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .sfield.editing{background:var(--orange-light);outline:2px solid var(--orange);outline-offset:-1px;border-radius:7px}
 .sf-label{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;font-weight:600;margin-bottom:2px}
 .sf-val{font-size:.88rem;font-weight:700;color:var(--text)}
@@ -814,8 +817,8 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
     </div>
     <div class="form-grid">
       <div class="form-row">
-        <div class="form-label">Prezzo vendita (k€) *</div>
-        <input class="form-input" id="sell-price" type="number" placeholder="es. 85" inputmode="decimal" step="0.5" oninput="updateMarginPreview()">
+        <div class="form-label">Prezzo (€) *</div>
+        <input class="form-input" id="sell-price" type="number" placeholder="es. 3125" inputmode="decimal" step="1" oninput="updateMarginPreview()">
       </div>
       <div class="form-row">
         <div class="form-label">Data</div>
@@ -1057,6 +1060,12 @@ document.addEventListener('keydown', e => {
   if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
   else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
 });
+
+// Scrolling must never change a number field
+document.addEventListener('wheel', () => {
+  const a = document.activeElement;
+  if (a && a.tagName === 'INPUT' && a.type === 'number') a.blur();
+}, { passive: true });
 
 // Download whole db as a JSON backup file.
 function exportBackup(){
@@ -1695,6 +1704,8 @@ function getSellType() {
 function onSellTypeChange() {
   const rent = getSellType() === 'noleggio';
   document.getElementById('sell-period-row').style.display = rent ? '' : 'none';
+  if (rent) document.getElementById('margin-preview').style.display = 'none';
+  else updateMarginPreview();
 }
 function resetSellForm() {
   document.getElementById('sell-invoice').value = nextInvoiceNr();
@@ -1750,18 +1761,18 @@ function openInvoiceFree() {
 function closeSellModal() { document.getElementById('sell-overlay').classList.remove('open'); }
 
 function updateMarginPreview() {
-  const m = db.macchine.find(x => x.id === sellId);
-  if (!m) return;
-  const costo = (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0);
-  const vend = parseFloat(document.getElementById('sell-price').value) || 0;
-  if (!vend) { document.getElementById('margin-preview').style.display = 'none'; return; }
-  const mar = vend - costo, pct = costo > 0 ? ((mar/costo)*100).toFixed(1) : 0, isPos = mar >= 0;
   const prev = document.getElementById('margin-preview');
+  if (getSellType() === 'noleggio') { prev.style.display = 'none'; return; } // rentals have no margin
+  const m = sellId ? db.macchine.find(x => x.id === sellId) : null;
+  const costoEuro = m ? ((parseFloat(m.acq)||0) + (parseFloat(m.spe)||0)) * 1000 : 0;
+  const vendEuro = parseFloat(document.getElementById('sell-price').value) || 0;
+  if (!vendEuro || !m) { prev.style.display = 'none'; return; }
+  const mar = vendEuro - costoEuro, pct = costoEuro > 0 ? ((mar/costoEuro)*100).toFixed(1) : 0, isPos = mar >= 0;
   prev.style.display = 'block';
   prev.className = 'margin-preview' + (isPos ? '' : ' neg');
   document.getElementById('margin-val').className = 'margin-value' + (isPos ? '' : ' neg');
   document.getElementById('margin-pct').className = 'margin-pct' + (isPos ? '' : ' neg');
-  document.getElementById('margin-val').textContent = (isPos ? '+' : '') + fmtK(mar);
+  document.getElementById('margin-val').textContent = (isPos ? '+' : '') + euroFmt(mar);
   document.getElementById('margin-pct').textContent = (isPos ? '+' : '') + pct + '% sul costo';
 }
 
@@ -1774,8 +1785,9 @@ function confirmSell() {
   if (!nr) { toast('⚠️ Inserisci il numero fattura', 'err'); return; }
   const blocco = document.getElementById('sell-cliente-blocco').value.replace(/\s+$/,'');
   if (!blocco.trim()) { toast('⚠️ Inserisci i dati del cliente', 'err'); return; }
-  const vend = parseFloat(document.getElementById('sell-price').value);
-  if (!vend) { toast('⚠️ Inserisci il prezzo', 'err'); return; }
+  const vendEuro = parseFloat(document.getElementById('sell-price').value);
+  if (!vendEuro) { toast('⚠️ Inserisci il prezzo', 'err'); return; }
+  const vend = vendEuro / 1000; // store internally in k
   let pFrom = '', pTo = '';
   if (tipo === 'noleggio') {
     pFrom = document.getElementById('sell-period-from').value;
@@ -1832,7 +1844,7 @@ function confirmSell() {
     m.stato = 'A noleggio';   // stays in stock, flagged
   }
   const verb = tipo === 'noleggio' ? '🗓 Noleggio: ' : (fattura.proforma ? '📄 Proforma: ' : '💰 Venduta: ');
-  addLog(verb + (fattura.modello||fattura.cliente) + ' — Fattura ' + nr + ' — ' + fattura.cliente + ' — ' + fmtK(vend));
+  addLog(verb + (fattura.modello||fattura.cliente) + ' — Fattura ' + nr + ' — ' + fattura.cliente + ' — ' + euroFmt(vendEuro));
   closeSellModal();
   renderAll();
   save();
@@ -1843,10 +1855,19 @@ function confirmSell() {
 // GENERAZIONE PDF FATTURA  (replica template Micy S.r.o.)
 // ══════════════════════════════════════════════════════
 function fmtEuroFull(k) {
-  // db stores thousands; invoice shows full euros
-  const eur = (parseFloat(k)||0) * 1000;
-  return '€ ' + eur.toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2});
+  // db stores thousands; invoice/fatture show full euros with thousands separator
+  return euroFmt((parseFloat(k)||0) * 1000);
 }
+// Full-euro formatter with manual thousands dots (env-independent).
+function euroFmt(euro) {
+  const n = Math.round((parseFloat(euro)||0) * 100) / 100;
+  const neg = n < 0;
+  const [intp, dec] = Math.abs(n).toFixed(2).split('.');
+  const grouped = intp.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (neg ? '-€ ' : '€ ') + grouped + ',' + dec;
+}
+// Show an amount stored in k as full euros.
+function eurK(k) { return euroFmt((parseFloat(k)||0) * 1000); }
 function fmtInvoiceDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -1891,15 +1912,13 @@ function generaFatturaPDF(f) {
   doc.setFont(FONT,'normal'); doc.setFontSize(BODY); doc.setTextColor(30);
   const isRent = f.tipo === 'noleggio';
   doc.text(isRent ? 'Rental of the following machine:' : 'Sale of the following machine:', M, y);
-  if (isRent && (f.periodoFrom || f.periodoTo)) {
-    y += 7; doc.setFont(FONT,'bold');
-    doc.text('Rental period: ' + fmtInvoiceDate(f.periodoFrom) + ' - ' + fmtInvoiceDate(f.periodoTo), M+8, y);
-    doc.setFont(FONT,'normal');
-  }
 
   // machine data
   y += 11; doc.setFontSize(BODY);
   const rows = [['Brand:', f.brand], ['Model:', f.model], ['Serial n:', f.serial], ['Year:', f.year]].filter(r => r[1]);
+  if (isRent && (f.periodoFrom || f.periodoTo)) {
+    rows.push(['Period:', fmtInvoiceDate(f.periodoFrom) + ' - ' + fmtInvoiceDate(f.periodoTo)]);
+  }
   rows.forEach(r => {
     doc.setFont(FONT,'bold'); doc.text(r[0], M + 8, y);
     doc.setFont(FONT,'normal'); doc.text(String(r[1]), M + 46, y);
@@ -2480,9 +2499,9 @@ function renderFatture() {
 
   const se = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
   se('fat-tot', db.fatture.length);
-  se('fat-incassato', fmtK(totInc));
-  se('fat-attesa', fmtK(totAtt));
-  se('fat-parziale', fmtK(totParz));
+  se('fat-incassato', eurK(totInc));
+  se('fat-attesa', eurK(totAtt));
+  se('fat-parziale', eurK(totParz));
 
   const el = document.getElementById('fatture-list'); if(!el) return;
   if(!list.length){ el.innerHTML='<div class="empty">Nessuna fattura trovata.</div>'; return; }
@@ -2505,11 +2524,11 @@ function renderFatture() {
 
     const accontoRow = f.stato==='parziale' ? `
       <div style="display:flex;align-items:center;gap:6px;padding:0 13px 10px;font-size:.78rem;color:var(--muted2)">
-        <span>Acconto:</span>
-        <input type="number" value="${acc}" step="0.5" inputmode="decimal"
-          style="width:65px;border:none;border-bottom:1px solid var(--border);background:transparent;font-size:.82rem;font-weight:700;color:#b8860b;outline:none;text-align:right"
+        <span>Acconto €:</span>
+        <input type="number" value="${Math.round(acc*1000)}" step="1" inputmode="decimal"
+          style="width:90px;border:none;border-bottom:1px solid var(--border);background:transparent;font-size:.82rem;font-weight:700;color:#b8860b;outline:none;text-align:right"
           onchange="updateAcconto('${f.id}',this.value)">
-        <span>k€ — da incassare: ${fmtK(daRic)}</span>
+        <span>— da incassare: ${eurK(daRic)}</span>
       </div>` : '';
 
     return `<div class="fat-card" style="animation-delay:${Math.min(i,8)*.03}s;border-left:3px solid ${st.color}">
@@ -2523,9 +2542,9 @@ function renderFatture() {
           </div>
           ${f.modello?`<div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">🚜 ${f.modello}${f.tipo==='noleggio'&&f.periodoFrom?` · ${fmtDate(f.periodoFrom)} → ${fmtDate(f.periodoTo)}`:''}</div>`:''}
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-            <span class="fat-importo">${fmtK(vend)}</span>
-            ${costo?`<span style="font-size:.75rem;color:var(--muted)">Costo: ${fmtK(costo)}</span>`:''}
-            ${costo?`<span style="font-size:.75rem;font-weight:700;color:${isPos?'var(--green)':'var(--red)'}">${isPos?'+':''}${fmtK(margine)} (${isPos?'+':''}${pctM}%)</span>`:''}
+            <span class="fat-importo">${eurK(vend)}</span>
+            ${f.tipo!=='noleggio'&&costo?`<span style="font-size:.75rem;color:var(--muted)">Costo: ${eurK(costo)}</span>`:''}
+            ${f.tipo!=='noleggio'&&costo?`<span style="font-size:.75rem;font-weight:700;color:${isPos?'var(--green)':'var(--red)'}">${isPos?'+':''}${eurK(margine)} (${isPos?'+':''}${pctM}%)</span>`:''}
             ${f.data?`<span class="fat-data">📅 ${fmtDate(f.data)}</span>`:''}
           </div>
           ${f.note?`<div style="font-size:.72rem;color:var(--muted);margin-top:3px">📝 ${f.note}</div>`:''}
@@ -2583,7 +2602,7 @@ async function setStatoPagata(id) {
 
 async function updateAcconto(id,val) {
   const f=db.fatture.find(x=>x.id===id); if(!f) return;
-  f.acconto=parseFloat(val)||0;
+  f.acconto=(parseFloat(val)||0)/1000; // input in full euros, store in k
   renderFatture(); renderPat(); await save();
 }
 
