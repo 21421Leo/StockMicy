@@ -129,6 +129,9 @@ header{background:var(--surf);border-bottom:2px solid var(--navy);padding:12px 1
 .spese-tot-row b{color:#1f7a4d;font-size:1.1rem;font-family:'Barlow Condensed',sans-serif}
 .cli-card{display:flex;gap:8px;align-items:flex-start;background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:11px;margin-bottom:10px;box-shadow:0 2px 8px rgba(10,42,94,.04)}
 .cli-card textarea{flex:1}
+.add-wide{width:100%;margin:0 0 12px;padding:12px;background:var(--orange-btn);color:#fff;border:none;border-radius:12px;font-family:'Barlow',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;box-shadow:0 2px 10px rgba(232,148,15,.3);transition:.15s}
+.add-wide:hover{background:#d4820a}
+.add-wide:active{transform:scale(.99)}
 input[type=number]{-moz-appearance:textfield;appearance:textfield}
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -621,7 +624,6 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
         <button class="icon-btn" onclick="printListino()" title="Stampa il listino in PDF">📄 Listino</button>
         <button class="icon-btn" onclick="exportBackup()" title="Scarica una copia di sicurezza">💾 Backup</button>
         <button class="icon-btn" onclick="importBackup()" title="Ripristina da un file di backup">📥 Ripristina</button>
-        <button class="icon-btn primary" id="add-btn" onclick="handleAdd()">+ Aggiungi</button>
       </div>
     </div>
   </header>
@@ -651,6 +653,7 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
           <option value="stato">Stato</option>
         </select>
       </div>
+      <button class="add-wide" onclick="openAddModal()">＋ Aggiungi macchina</button>
       <div id="stock-list"></div>
     </div>
   </div>
@@ -681,6 +684,7 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
           <option value="pagata">Pagate</option>
         </select>
       </div>
+      <button class="add-wide" onclick="openInvoiceFree()">＋ Aggiungi fattura (macchina non in stock)</button>
       <div id="fatture-list"></div>
     </div>
   </div>
@@ -690,6 +694,7 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
     <div class="page-inner">
       <div class="sec-title">👤 Anagrafica clienti</div>
       <div style="font-size:.8rem;color:var(--muted);margin-bottom:12px">Testo libero, vai a capo come vuoi. Finisce in fattura esattamente così. Premi <b>+ Aggiungi</b> in alto per un nuovo cliente.</div>
+      <button class="add-wide" onclick="addClienteRow()">＋ Aggiungi cliente</button>
       <div id="clienti-page-list"></div>
     </div>
   </div>
@@ -720,19 +725,29 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
 </div>
 
 <!-- SELL MODAL -->
-<div class="overlay" id="fcosti-overlay">
+<div class="overlay" id="report-overlay">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">✏️ Costi fattura</div>
-    <div id="fcosti-name" style="font-size:.85rem;color:var(--navy);font-weight:700;margin-bottom:12px"></div>
-    <div class="form-grid">
-      <div class="form-row"><div class="form-label">Costo acquisto (€)</div><input class="form-input" id="fcosti-acq" type="number" step="1"></div>
-      <div class="form-row"><div class="form-label">Spese totali (€)</div><input class="form-input" id="fcosti-spe" type="number" step="1"></div>
-    </div>
-    <div style="font-size:.78rem;color:var(--muted);margin-top:8px">Il margine si ricalcola subito. Il saldo VUB non cambia da qui: aggiornalo tu quando paghi davvero la spesa.</div>
+    <div class="modal-title" id="report-title">📊 Report operazione</div>
+    <div id="report-body"></div>
     <div class="modal-actions" style="flex-direction:column;gap:8px">
-      <button class="modal-btn save" style="width:100%" onclick="saveFcosti()">Salva</button>
-      <button class="modal-btn cancel" style="width:100%" onclick="closeFcosti()">Chiudi</button>
+      <button class="modal-btn save" style="width:100%" onclick="generaFatturaPDF(db.fatture.find(x=>x.id===_reportId))">📄 Scarica fattura PDF</button>
+      <button class="modal-btn cancel" style="width:100%" onclick="closeReport()">Chiudi</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="parz-overlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🟡 Pagamento parziale</div>
+    <div id="parz-name" style="font-size:.85rem;color:var(--navy);font-weight:700;margin-bottom:12px"></div>
+    <div class="form-row">
+      <div class="form-label">Quanto è stato pagato finora (€)?</div>
+      <input class="form-input" id="parz-imp" type="number" step="1" placeholder="es. 130000">
+    </div>
+    <div class="modal-actions" style="flex-direction:column;gap:8px">
+      <button class="modal-btn save" style="width:100%" onclick="confirmParziale()">Registra acconto</button>
+      <button class="modal-btn cancel" style="width:100%" onclick="closeParz()">Annulla</button>
     </div>
   </div>
 </div>
@@ -1332,7 +1347,6 @@ function switchTab(name, el) {
   el.classList.add('active');
   const page = document.getElementById('page-' + name);
   if (page) page.classList.add('active');
-  document.getElementById('add-btn').style.display = (name === 'log') ? 'none' : '';
   if (name === 'log') renderLog();
   if (name === 'fatture') renderFatture();
   if (name === 'clienti') renderClienti();
@@ -1544,6 +1558,8 @@ function renderStock() {
           <div class="sf-label">Ore</div><div class="sf-val">${m.ore?Number(m.ore).toLocaleString('it-IT'):'—'}</div></div>
         <div class="sfield" onclick="editSfield(this,'${m.id}','location','text')">
           <div class="sf-label">Location</div><div class="sf-val">${m.location||'—'}</div></div>
+        <div class="sfield sf-note" onclick="editSfield(this,'${m.id}','vin','text')">
+          <div class="sf-label">VIN / Serial</div><div class="sf-val" style="font-family:monospace;font-size:.85rem">${m.vin||'—'}</div></div>
         <div class="sfield sf-note" onclick="editSfield(this,'${m.id}','note','text')">
           <div class="sf-label">Note</div><div class="sf-val" style="color:var(--text2);font-weight:500">${m.note||'—'}</div></div>
       </div>
@@ -1563,23 +1579,123 @@ function renderStock() {
   }).join('');
 }
 
-let _fcostiId = null;
-function openFcosti(fid){
-  const f = db.fatture.find(x=>x.id===fid); if(!f) return;
-  _fcostiId = fid;
-  document.getElementById('fcosti-name').textContent = 'Fattura '+f.nr+' — '+(f.cliente||'');
-  document.getElementById('fcosti-acq').value = Math.round((parseFloat(f.acq)||0)*1000);
-  document.getElementById('fcosti-spe').value = Math.round((parseFloat(f.spe)||0)*1000);
-  document.getElementById('fcosti-overlay').classList.add('open');
+let _reportId = null;
+function openReport(fid){ _reportId = fid; renderReport(); document.getElementById('report-overlay').classList.add('open'); }
+function closeReport(){ document.getElementById('report-overlay').classList.remove('open'); renderFatture(); renderPat(); }
+function reportRow(label, val, opts){
+  opts = opts || {};
+  return `<div style="display:flex;justify-content:space-between;padding:6px 0;${opts.border?'border-top:1px solid var(--border);':''}${opts.big?'font-size:1.05rem;':''}">
+    <span style="${opts.bold?'font-weight:700;':'color:var(--muted)'}">${label}</span>
+    <span style="font-weight:${opts.bold?'800':'600'};color:${opts.color||'var(--text)'};font-family:'Barlow Condensed',sans-serif;font-size:1.05rem">${val}</span></div>`;
 }
-function closeFcosti(){ document.getElementById('fcosti-overlay').classList.remove('open'); }
-function saveFcosti(){
-  const f = db.fatture.find(x=>x.id===_fcostiId); if(!f) return;
-  f.acq = (parseFloat(document.getElementById('fcosti-acq').value)||0)/1000;
-  f.spe = (parseFloat(document.getElementById('fcosti-spe').value)||0)/1000;
-  addLog('✏️ Aggiornati costi fattura '+f.nr);
-  closeFcosti(); renderFatture(); renderPat(); save();
-  toast('✓ Costi aggiornati, margine ricalcolato','ok');
+function renderReport(){
+  const f = db.fatture.find(x=>x.id===_reportId); if(!f) return;
+  const title = document.getElementById('report-title');
+  const body = document.getElementById('report-body');
+  const head = `<div style="font-size:.85rem;color:var(--navy);font-weight:700;margin-bottom:10px">Fattura ${f.nr} — ${(f.brand||'')+' '+(f.model||f.modello||'')} — ${f.cliente||''}</div>`;
+  if (f.tipo === 'noleggio') {
+    title.textContent = '📊 Report noleggio';
+    body.innerHTML = head + renderReportNoleggio(f);
+  } else {
+    title.textContent = '📊 Report vendita';
+    body.innerHTML = head + renderReportVendita(f);
+  }
+}
+function renderReportVendita(f){
+  if(!Array.isArray(f.speseList)) f.speseList = [];
+  recalcFatturaSpese(f);
+  const acqE = (parseFloat(f.acq)||0)*1000;
+  const speE = (parseFloat(f.spe)||0)*1000;
+  const vendE = (parseFloat(f.importo)||0)*1000;
+  const marE = vendE - acqE - speE;
+  const pos = marE >= 0;
+  let h = reportRow('Prezzo di acquisto', euroFmt(acqE));
+  h += `<div style="margin:10px 0 4px;font-weight:700;color:var(--navy)">Spese</div>`;
+  h += f.speseList.length ? f.speseList.map(s=>`
+    <div class="spesa-row" data-sid="${s.id}">
+      <span class="spesa-date">${fmtSpDate(s.data)}</span>
+      <input class="form-input spesa-desc" value="${escapeHtml(s.testo)}" placeholder="Descrizione" oninput="updateSpesaFattura('${s.id}','testo',this.value)">
+      <div class="spesa-imp"><input class="form-input" type="number" step="1" value="${s.importo||''}" placeholder="es. 2000" oninput="updateSpesaFattura('${s.id}','importo',this.value)"><span>€</span></div>
+      <button class="cli-del" onclick="deleteSpesaFattura('${s.id}')">🗑</button>
+    </div>`).join('') : '<div style="font-size:.8rem;color:var(--muted);padding:4px 0">Nessuna spesa.</div>';
+  h += `<button class="add-wide" style="margin-top:8px" onclick="addSpesaFattura()">＋ Aggiungi spesa</button>`;
+  h += reportRow('Totale spese', euroFmt(speE), {border:true});
+  h += reportRow('Costo totale', euroFmt(acqE+speE), {bold:true});
+  h += reportRow('Prezzo di vendita', euroFmt(vendE), {border:true, bold:true});
+  h += reportRow('Venduta a', f.cliente||'—');
+  h += reportRow('Margine', (pos?'+':'')+euroFmt(marE), {bold:true, border:true, big:true, color: pos?'#1f7a4d':'#b23b3b'});
+  return h;
+}
+function renderReportNoleggio(f){
+  const m = f.machineId ? db.macchine.find(x=>x.id===f.machineId) : null;
+  const acqE = ((m?parseFloat(m.acq):parseFloat(f.acq))||0)*1000;
+  const speList = (m && Array.isArray(m.speseList)) ? m.speseList : (f.speseList||[]);
+  const speE = speList.reduce((s,x)=>s+(parseFloat(x.importo)||0),0);
+  // all rental invoices for the same machine this year
+  const year = new Date(f.data||Date.now()).getFullYear();
+  const rentals = (db.fatture||[]).filter(x => x.tipo==='noleggio'
+      && ((f.machineId && x.machineId===f.machineId) || (!f.machineId && x.modello===f.modello))
+      && new Date(x.data||0).getFullYear()===year);
+  const totRent = rentals.reduce((s,x)=>s+(parseFloat(x.importo)||0)*1000,0);
+  let h = reportRow('Prezzo di acquisto macchina', euroFmt(acqE));
+  h += `<div style="margin:10px 0 4px;font-weight:700;color:var(--navy)">Noleggi ${year}</div>`;
+  h += rentals.map(x=>{
+    const st = x.stato==='pagata'?'✅':x.stato==='parziale'?'🟡':'🔴';
+    const per = x.periodoFrom?`${fmtDate(x.periodoFrom)}→${fmtDate(x.periodoTo)}`:'';
+    return `<div style="display:flex;justify-content:space-between;font-size:.82rem;padding:4px 0;border-bottom:1px solid var(--surf3)">
+      <span>${st} Fatt. ${x.nr} <span style="color:var(--muted)">${per}</span></span>
+      <span style="font-weight:700;font-family:'Barlow Condensed',sans-serif">${euroFmt((parseFloat(x.importo)||0)*1000)}</span></div>`;
+  }).join('');
+  h += reportRow('Totale incassi noleggio', euroFmt(totRent), {bold:true, border:true, color:'#1f7a4d'});
+  h += `<div style="margin:10px 0 4px;font-weight:700;color:var(--navy)">Spese macchina</div>`;
+  h += speList.length ? speList.map(s=>`<div style="display:flex;justify-content:space-between;font-size:.82rem;padding:3px 0">
+      <span>${fmtSpDate(s.data)} ${escapeHtml(s.testo||'')}</span>
+      <span style="font-weight:700;font-family:'Barlow Condensed',sans-serif">${euroFmt(parseFloat(s.importo)||0)}</span></div>`).join('')
+      : '<div style="font-size:.8rem;color:var(--muted)">Nessuna spesa. Aggiungile dalla macchina a stock.</div>';
+  h += reportRow('Totale spese', euroFmt(speE), {border:true, bold:true});
+  return h;
+}
+// spese on the SALE invoice (machine already out of stock)
+function recalcFatturaSpese(f){ if(Array.isArray(f.speseList)) f.spe = f.speseList.reduce((s,x)=>s+(parseFloat(x.importo)||0),0)/1000; }
+function addSpesaFattura(){
+  const f = db.fatture.find(x=>x.id===_reportId); if(!f) return;
+  if(!Array.isArray(f.speseList)) f.speseList=[];
+  f.speseList.push({id:'sf'+Date.now(), data:new Date().toISOString().split('T')[0], testo:'', importo:0});
+  renderReport(); save();
+}
+function updateSpesaFattura(sid, field, val){
+  const f = db.fatture.find(x=>x.id===_reportId); if(!f) return;
+  const s = (f.speseList||[]).find(x=>x.id===sid); if(!s) return;
+  s[field] = field==='importo' ? (parseFloat(val)||0) : val;
+  recalcFatturaSpese(f);
+  // live-refresh only totals (not the inputs) to keep focus
+  clearTimeout(window._sfSave); window._sfSave=setTimeout(()=>{ renderReport(); save(); }, 600);
+}
+function deleteSpesaFattura(sid){
+  const f = db.fatture.find(x=>x.id===_reportId); if(!f) return;
+  f.speseList = (f.speseList||[]).filter(x=>x.id!==sid);
+  recalcFatturaSpese(f); renderReport(); save();
+}
+
+// Partial payment modal
+let _parzId = null;
+function openParz(fid){
+  const f = db.fatture.find(x=>x.id===fid); if(!f) return;
+  _parzId = fid;
+  document.getElementById('parz-name').textContent = 'Fattura '+f.nr+' — '+(f.cliente||'')+' — totale '+eurK(f.importo);
+  document.getElementById('parz-imp').value = f.acconto ? Math.round(f.acconto*1000) : '';
+  document.getElementById('parz-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('parz-imp').focus(), 150);
+}
+function closeParz(){ document.getElementById('parz-overlay').classList.remove('open'); }
+async function confirmParziale(){
+  const f = db.fatture.find(x=>x.id===_parzId); if(!f) return;
+  const eur = parseFloat(document.getElementById('parz-imp').value);
+  if(!eur){ toast('⚠️ Inserisci l\'importo pagato','err'); return; }
+  f.stato='parziale'; f.acconto = eur/1000;
+  addLog('🟡 Fattura '+f.nr+': acconto '+euroFmt(eur));
+  syncVubFattura(f);
+  closeParz(); renderFatture(); renderPat(); await save();
 }
 function cycleStato(id){
   const m = db.macchine.find(x=>x.id===id); if(!m) return;
@@ -1670,7 +1786,7 @@ function confirmAdd() {
   const m = {
     id: 'm' + Date.now(),
     brand: '', modello,
-    anno: '', ore: '',
+    anno: '', ore: '', vin: '',
     acq: parseFloat(document.getElementById('add-acq').value) || 0,
     spe: parseFloat(document.getElementById('add-spe').value) || 0,
     speseList: [],
@@ -1802,6 +1918,7 @@ function openSell(id) {
   document.getElementById('sell-cost-row').style.display = 'none'; // cost comes from machine
   document.getElementById('sell-brand').value = m.brand || '';
   document.getElementById('sell-model').value = m.modello || '';
+  document.getElementById('sell-serial').value = m.vin || '';
   document.getElementById('sell-year').value = m.anno || '';
   document.getElementById('sell-overlay').classList.add('open');
   setTimeout(() => document.getElementById('sell-price').focus(), 150);
@@ -1890,6 +2007,7 @@ function confirmSell() {
     incoterms:document.getElementById('sell-incoterms').value.trim(),
     modello: m ? m.modello : (document.getElementById('sell-model').value.trim() || document.getElementById('sell-brand').value.trim()),
     acq, spe,
+    speseList: m && Array.isArray(m.speseList) ? JSON.parse(JSON.stringify(m.speseList)) : [],
     machineId: m ? m.id : null,
     libera: !m,
     stato: 'attesa',
@@ -2615,9 +2733,9 @@ function renderFatture() {
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;padding-left:10px">
           <span style="background:${st.color==='var(--green)'?'var(--green-bg)':st.color==='var(--red)'?'var(--red-bg)':'rgba(255,193,7,.15)'};color:${st.color};border-radius:20px;padding:3px 10px;font-size:.7rem;font-weight:700;white-space:nowrap">${st.label}</span>
           <div style="display:flex;gap:4px">
-            ${f.stato==='attesa'?`<button class="fat-action-btn" onclick="setStatoParziale('${f.id}')">🟡</button><button class="fat-action-btn green" onclick="setStatoPagata('${f.id}')">✅</button>`:''}
+            ${f.stato==='attesa'?`<button class="fat-action-btn" onclick="openParz('${f.id}')">🟡</button><button class="fat-action-btn green" onclick="setStatoPagata('${f.id}')">✅</button>`:''}
             ${f.stato==='parziale'?`<button class="fat-action-btn green" onclick="setStatoPagata('${f.id}')">✅ Pagata</button>`:''}
-            ${f.tipo!=='noleggio'?`<button class="fat-action-btn" onclick="openFcosti('${f.id}')" title="Modifica costi">✏️</button>`:''}
+            <button class="fat-action-btn" onclick="openReport('${f.id}')" title="Report operazione">📊</button>
             <button class="fat-action-btn" onclick="generaFatturaPDF(db.fatture.find(x=>x.id==='${f.id}'))" title="Scarica PDF">📄</button>
             <button class="fat-action-btn del" onclick="deleteFattura('${f.id}')">🗑</button>
           </div>
