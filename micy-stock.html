@@ -99,6 +99,8 @@ header{background:var(--surf);border-bottom:2px solid var(--navy);padding:12px 1
 .scard-tag.st-ok{background:#e8f3ec;color:#1f7a4d}
 .scard-tag.st-sold{background:#fbeaea;color:#b23b3b}
 .scard-tag.st-rent{background:var(--orange-light);color:var(--orange)}
+.scard-tag.st-inc{background:#fff3cd;color:#8a6d00}
+.scard-tag{cursor:pointer;user-select:none}
 .seg-group{display:flex;gap:8px}
 .seg{flex:1;position:relative;cursor:pointer}
 .seg input{position:absolute;opacity:0;pointer-events:none}
@@ -718,6 +720,22 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
 </div>
 
 <!-- SELL MODAL -->
+<div class="overlay" id="fcosti-overlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Costi fattura</div>
+    <div id="fcosti-name" style="font-size:.85rem;color:var(--navy);font-weight:700;margin-bottom:12px"></div>
+    <div class="form-grid">
+      <div class="form-row"><div class="form-label">Costo acquisto (€)</div><input class="form-input" id="fcosti-acq" type="number" step="1"></div>
+      <div class="form-row"><div class="form-label">Spese totali (€)</div><input class="form-input" id="fcosti-spe" type="number" step="1"></div>
+    </div>
+    <div style="font-size:.78rem;color:var(--muted);margin-top:8px">Il margine si ricalcola subito. Il saldo VUB non cambia da qui: aggiornalo tu quando paghi davvero la spesa.</div>
+    <div class="modal-actions" style="flex-direction:column;gap:8px">
+      <button class="modal-btn save" style="width:100%" onclick="saveFcosti()">Salva</button>
+      <button class="modal-btn cancel" style="width:100%" onclick="closeFcosti()">Chiudi</button>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="spese-overlay">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -725,9 +743,9 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
     <div id="spese-machine-name" style="font-size:.85rem;color:var(--navy);font-weight:700;margin-bottom:12px"></div>
     <div id="spese-list"></div>
     <div class="spese-tot-row">Totale spese: <b id="spese-tot">€ 0k</b></div>
-    <div class="modal-actions">
-      <button class="modal-btn save" onclick="addSpesaVoce()">＋ Aggiungi spesa</button>
-      <button class="modal-btn cancel" onclick="closeSpese()">Chiudi</button>
+    <div class="modal-actions" style="flex-direction:column;gap:8px">
+      <button class="modal-btn save" style="width:100%" onclick="addSpesaVoce()">＋ Aggiungi spesa</button>
+      <button class="modal-btn cancel" style="width:100%" onclick="closeSpese()">Chiudi</button>
     </div>
   </div>
 </div>
@@ -1121,6 +1139,13 @@ async function loadFromStorage() {
     if (!db.log)           db.log           = [];
     if (!db.patrimHistory) db.patrimHistory = [];
     if (!db.clienti)       db.clienti       = [];
+    // One-time init of VUB trackers so existing machines/invoices are treated as
+    // already accounted for (does NOT change the balance).
+    if (!db._vubInit) {
+      db.macchine.forEach(m => { if (m._vubAddebito === undefined) m._vubAddebito = (parseFloat(m.acq)||0)+(parseFloat(m.spe)||0); });
+      (db.fatture||[]).forEach(f => { if (f._vubIncasso === undefined) f._vubIncasso = f.stato==='pagata' ? (parseFloat(f.importo)||0) : f.stato==='parziale' ? (parseFloat(f.acconto)||0) : 0; });
+      db._vubInit = true;
+    }
     _loadOK = true;
     backupLocal();
     renderAll();
@@ -1396,6 +1421,7 @@ function makeEditable(valEl, machineId, field, type) {
       }
       updateStockStats();
       renderPat();
+      syncVubMacchina(machine);
     }
     save();
     // Brand/Model affect ordering -> re-render to keep A->Z correct
@@ -1502,10 +1528,10 @@ function renderStock() {
     const acq = parseFloat(m.acq)||0, spe = parseFloat(m.spe)||0, tot = acq + spe;
     const nSpese = (m.speseList||[]).length;
     const st = m.stato || 'Disponibile';
-    const stClass = st==='A noleggio' ? 'st-rent' : st.indexOf('Venduta')===0 ? 'st-sold' : 'st-ok';
+    const stClass = st==='A noleggio' ? 'st-rent' : st==='Da incassare' ? 'st-inc' : st.indexOf('Venduta')===0 ? 'st-sold' : 'st-ok';
     return `<div class="scard" data-id="${m.id}">
       <div class="scard-top">
-        <span class="scard-tag ${stClass}">${st}</span>
+        <span class="scard-tag ${stClass}" onclick="cycleStato('${m.id}')" title="Clicca per cambiare stato">${st} ⌄</span>
       </div>
       <div class="scard-fields">
         <div class="sfield" onclick="editSfield(this,'${m.id}','brand','text')">
@@ -1537,10 +1563,36 @@ function renderStock() {
   }).join('');
 }
 
-// Spese list: m.speseList = [{id, data, testo, importo(k)}]; m.spe = sum.
+let _fcostiId = null;
+function openFcosti(fid){
+  const f = db.fatture.find(x=>x.id===fid); if(!f) return;
+  _fcostiId = fid;
+  document.getElementById('fcosti-name').textContent = 'Fattura '+f.nr+' — '+(f.cliente||'');
+  document.getElementById('fcosti-acq').value = Math.round((parseFloat(f.acq)||0)*1000);
+  document.getElementById('fcosti-spe').value = Math.round((parseFloat(f.spe)||0)*1000);
+  document.getElementById('fcosti-overlay').classList.add('open');
+}
+function closeFcosti(){ document.getElementById('fcosti-overlay').classList.remove('open'); }
+function saveFcosti(){
+  const f = db.fatture.find(x=>x.id===_fcostiId); if(!f) return;
+  f.acq = (parseFloat(document.getElementById('fcosti-acq').value)||0)/1000;
+  f.spe = (parseFloat(document.getElementById('fcosti-spe').value)||0)/1000;
+  addLog('✏️ Aggiornati costi fattura '+f.nr);
+  closeFcosti(); renderFatture(); renderPat(); save();
+  toast('✓ Costi aggiornati, margine ricalcolato','ok');
+}
+function cycleStato(id){
+  const m = db.macchine.find(x=>x.id===id); if(!m) return;
+  const seq = ['Disponibile','A noleggio','Da incassare'];
+  const i = seq.indexOf(m.stato||'Disponibile');
+  m.stato = seq[(i+1) % seq.length];
+  save(); renderStock();
+}
+// Spese list: m.speseList = [{id, data, testo, importo(FULL EUROS)}]; m.spe = sum/1000 (k).
 function recalcSpese(m) {
-  if (Array.isArray(m.speseList) && m.speseList.length) {
-    m.spe = m.speseList.reduce((s,x) => s + (parseFloat(x.importo)||0), 0);
+  if (Array.isArray(m.speseList)) {
+    const eur = m.speseList.reduce((s,x) => s + (parseFloat(x.importo)||0), 0);
+    m.spe = eur / 1000;
   }
 }
 let _speseMid = null;
@@ -1550,7 +1602,7 @@ function openSpese(mid){
   if(!Array.isArray(m.speseList)) m.speseList = [];
   // migrate a pre-existing manual "spe" value into the list so it isn't lost
   if(!m.speseList.length && (parseFloat(m.spe)||0) > 0){
-    m.speseList.push({id:'sp'+Date.now(), data:new Date().toISOString().split('T')[0], testo:'Spesa iniziale', importo: parseFloat(m.spe)||0});
+    m.speseList.push({id:'sp'+Date.now(), data:new Date().toISOString().split('T')[0], testo:'Spesa iniziale', importo: Math.round((parseFloat(m.spe)||0)*1000)});
   }
   document.getElementById('spese-machine-name').textContent = (m.brand? m.brand+' ':'') + (m.modello||'');
   renderSpeseList();
@@ -1568,12 +1620,12 @@ function renderSpeseList(){
       <div class="spesa-row" data-sid="${s.id}">
         <span class="spesa-date">${fmtSpDate(s.data)}</span>
         <input class="form-input spesa-desc" value="${escapeHtml(s.testo)}" placeholder="Descrizione" oninput="updateSpesaVoce('${s.id}','testo',this.value)">
-        <div class="spesa-imp"><input class="form-input" type="number" inputmode="decimal" step="0.5" value="${s.importo||''}" placeholder="k" oninput="updateSpesaVoce('${s.id}','importo',this.value)"><span>k\u20AC</span></div>
+        <div class="spesa-imp"><input class="form-input" type="number" inputmode="decimal" step="1" value="${s.importo||''}" placeholder="es. 2000" oninput="updateSpesaVoce('${s.id}','importo',this.value)"><span>\u20AC</span></div>
         <button class="cli-del" onclick="deleteSpesaVoce('${s.id}')" title="Elimina">🗑</button>
       </div>`).join('');
   }
   recalcSpese(m);
-  document.getElementById('spese-tot').textContent = '€ ' + (m.spe||0) + 'k';
+  document.getElementById('spese-tot').textContent = eurK(m.spe);
 }
 function addSpesaVoce(){
   const m = db.macchine.find(x=>x.id===_speseMid); if(!m) return;
@@ -1586,14 +1638,17 @@ function updateSpesaVoce(sid, field, val){
   const s = (m.speseList||[]).find(x=>x.id===sid); if(!s) return;
   s[field] = field==='importo' ? (parseFloat(val)||0) : val;
   recalcSpese(m);
-  document.getElementById('spese-tot').textContent = '€ ' + (m.spe||0) + 'k';
+  document.getElementById('spese-tot').textContent = eurK(m.spe);
+  if (typeof syncVubMacchina === 'function') syncVubMacchina(m);
   updateStockStats();
   clearTimeout(window._spSave); window._spSave=setTimeout(()=>save(),500);
 }
 function deleteSpesaVoce(sid){
   const m = db.macchine.find(x=>x.id===_speseMid); if(!m) return;
   m.speseList = (m.speseList||[]).filter(x=>x.id!==sid);
-  recalcSpese(m); renderSpeseList(); save();
+  recalcSpese(m);
+  if (typeof syncVubMacchina === 'function') syncVubMacchina(m);
+  renderSpeseList(); updateStockStats(); save();
 }
 
 function handleAdd() {
@@ -1614,14 +1669,17 @@ function confirmAdd() {
   if (!modello) { toast('⚠️ Inserisci il modello', 'err'); return; }
   const m = {
     id: 'm' + Date.now(),
-    modello,
+    brand: '', modello,
     anno: '', ore: '',
     acq: parseFloat(document.getElementById('add-acq').value) || 0,
     spe: parseFloat(document.getElementById('add-spe').value) || 0,
-    stato: 'Disponibile', note: '', location: ''
+    speseList: [],
+    stato: 'Disponibile', note: '', location: '',
+    _vubAddebito: 0
   };
   db.macchine.push(m);
   addLog('➕ Aggiunta macchina: ' + modello);
+  syncVubMacchina(m);   // cost leaves VUB automatically
   closeAddModal();
   if (currentTab !== 'stock') {
     const tab = document.querySelector('.tab[data-tab="stock"]');
@@ -1644,8 +1702,9 @@ function scrollToMachine(id) {
 
 function deleteMacchina(id) {
   const m = db.macchine.find(x => x.id === id);
-  if (!confirm('Eliminare "' + (m ? m.modello : id) + '"?')) return;
+  if (!confirm('Eliminare "' + (m ? ((m.brand?m.brand+' ':'')+m.modello) : id) + '"?')) return;
   addLog('🗑 Eliminata: ' + (m ? m.modello : id));
+  if (m) { const refund = parseFloat(m._vubAddebito)||0; if (refund) vubAdjust(refund, 'rimborso ' + m.modello); }
   db.macchine = db.macchine.filter(x => x.id !== id);
   save();
   renderStock();
@@ -1832,8 +1891,10 @@ function confirmSell() {
     modello: m ? m.modello : (document.getElementById('sell-model').value.trim() || document.getElementById('sell-brand').value.trim()),
     acq, spe,
     machineId: m ? m.id : null,
+    libera: !m,
     stato: 'attesa',
-    acconto: 0
+    acconto: 0,
+    _vubIncasso: 0
   };
 
   db.fatture.unshift(fattura);
@@ -1965,7 +2026,9 @@ function generaFatturaPDF(f) {
   doc.text('Currency: EUR. Price net, not subject to VAT.', M, y); y += 6;
   doc.text(doc.splitTextToSize(SELLER.registry, CW), M, y);
 
-  const tag = (f.proforma ? 'Proforma_' : 'Invoice_') + f.nr + '_' + f.cliente.replace(/[^a-zA-Z0-9]+/g,'_');
+  const clean = s => String(s||'').replace(/[\/\\:*?"<>|]/g,'').replace(/\s+/g,' ').trim();
+  const macchina = clean(((f.brand||'') + ' ' + (f.model||f.modello||'')).trim());
+  const tag = clean((f.proforma ? 'Proforma ' : 'Invoice ') + f.nr + ' ' + macchina + ' ' + (f.cliente||''));
   doc.save(tag + '.pdf');
   toast('\u2713 PDF generato', 'ok');
 }
@@ -2554,6 +2617,7 @@ function renderFatture() {
           <div style="display:flex;gap:4px">
             ${f.stato==='attesa'?`<button class="fat-action-btn" onclick="setStatoParziale('${f.id}')">🟡</button><button class="fat-action-btn green" onclick="setStatoPagata('${f.id}')">✅</button>`:''}
             ${f.stato==='parziale'?`<button class="fat-action-btn green" onclick="setStatoPagata('${f.id}')">✅ Pagata</button>`:''}
+            ${f.tipo!=='noleggio'?`<button class="fat-action-btn" onclick="openFcosti('${f.id}')" title="Modifica costi">✏️</button>`:''}
             <button class="fat-action-btn" onclick="generaFatturaPDF(db.fatture.find(x=>x.id==='${f.id}'))" title="Scarica PDF">📄</button>
             <button class="fat-action-btn del" onclick="deleteFattura('${f.id}')">🗑</button>
           </div>
@@ -2570,26 +2634,36 @@ function bankAccount() {
   return (db.saldi||[]).find(s => /vub/i.test(s.voce || '')) ||
          (db.saldi||[]).find(s => s.id === 's1');
 }
-function syncBank(f) {
+function vubAdjust(deltaK, why) {
+  const acc = bankAccount();
+  if (acc && deltaK) {
+    acc.val = (parseFloat(acc.val)||0) + deltaK;
+    addLog('🏦 ' + acc.voce + (deltaK>0?' +':' ') + eurK(deltaK) + (why?(' ('+why+')'):''));
+  }
+}
+// Machine cost (acq+spe in k) is money OUT of VUB. Idempotent via m._vubAddebito.
+function syncVubMacchina(m) {
+  const target = (parseFloat(m.acq)||0) + (parseFloat(m.spe)||0);
+  const already = parseFloat(m._vubAddebito)||0;
+  const delta = target - already;
+  if (delta !== 0) { vubAdjust(-delta, (m.brand||'')+' '+(m.modello||'')); m._vubAddebito = target; renderPat(); }
+}
+// Cashed invoice amount (k) is money INTO VUB. Idempotent via f._vubIncasso.
+function syncVubFattura(f) {
+  if (f.libera) return;   // historical/catch-up invoices don't move the balance
   let target = 0;
   if (f.stato === 'pagata')   target = parseFloat(f.importo)||0;
-  if (f.stato === 'parziale') target = parseFloat(f.acconto)||0;
-  const already = parseFloat(f.bankAccredito)||0;
+  else if (f.stato === 'parziale') target = parseFloat(f.acconto)||0;
+  const already = parseFloat(f._vubIncasso)||0;
   const delta = target - already;
-  if (delta === 0) return 0;
-  const acc = bankAccount();
-  if (acc) {
-    acc.val = (parseFloat(acc.val)||0) + delta;
-    f.bankAccredito = target;
-    addLog('🏦 ' + acc.voce + (delta>0?' +':' ') + fmtK(delta) + ' (fattura ' + f.nr + ')');
-  }
-  return delta;
+  if (delta !== 0) { vubAdjust(delta, 'incasso fattura '+f.nr); f._vubIncasso = target; renderPat(); }
 }
 
 async function setStatoParziale(id) {
   const f=db.fatture.find(x=>x.id===id); if(!f) return;
   f.stato='parziale'; if(!f.acconto) f.acconto=0;
   addLog('🟡 Fattura '+f.nr+': pagamento parziale');
+  syncVubFattura(f);
   renderFatture(); renderPat(); await save();
 }
 
@@ -2597,12 +2671,14 @@ async function setStatoPagata(id) {
   const f=db.fatture.find(x=>x.id===id); if(!f) return;
   f.stato='pagata';
   addLog('✅ Fattura '+f.nr+' pagata completamente');
+  syncVubFattura(f);
   renderFatture(); renderPat(); await save();
 }
 
 async function updateAcconto(id,val) {
   const f=db.fatture.find(x=>x.id===id); if(!f) return;
   f.acconto=(parseFloat(val)||0)/1000; // input in full euros, store in k
+  if (f.stato==='parziale') syncVubFattura(f);
   renderFatture(); renderPat(); await save();
 }
 
