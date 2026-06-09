@@ -304,7 +304,7 @@ canvas{width:100%!important;height:220px!important}
 .fat-action-btn.green{background:var(--green-bg);border-color:var(--green);color:var(--green)}
 .fat-action-btn.del{color:var(--red)}
 .fat-action-btn.del:active{background:var(--red-bg)}
-.fatture-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:13px}
+.fatture-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:13px}
 .fat-stat{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:10px 8px;box-shadow:var(--shadow);text-align:center}
 .fat-stat .fsv{font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:800}
 .fat-stat.green .fsv{color:var(--green)}
@@ -459,7 +459,7 @@ header{box-shadow:0 1px 0 var(--border),0 4px 16px rgba(0,0,0,.04)}
 .fat-action-btn.green{background:var(--green-bg);border-color:var(--green);color:var(--green)}
 .fat-action-btn.del{color:var(--red)}
 .fat-action-btn.del:active{background:var(--red-bg)}
-.fatture-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:13px}
+.fatture-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:13px}
 .fat-stat{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:10px 8px;box-shadow:var(--shadow);text-align:center}
 .fat-stat .fsv{font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:800}
 .fat-stat.green .fsv{color:var(--green)}
@@ -1100,6 +1100,19 @@ document.addEventListener('wheel', () => {
   if (a && a.tagName === 'INPUT' && a.type === 'number') a.blur();
 }, { passive: true });
 
+// Close any open modal with ESC or by clicking the blurred area outside it
+function closeOpenOverlays(){
+  const open = document.querySelectorAll('.overlay.open');
+  if (!open.length) return false;
+  open.forEach(o => o.classList.remove('open'));
+  renderAll();
+  return true;
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOpenOverlays(); });
+document.addEventListener('click', e => {
+  if (e.target && e.target.classList && e.target.classList.contains('overlay')) closeOpenOverlays();
+});
+
 // Download whole db as a JSON backup file.
 function exportBackup(){
   try {
@@ -1615,7 +1628,7 @@ function renderReportVendita(f){
     <div class="spesa-row" data-sid="${s.id}">
       <span class="spesa-date">${fmtSpDate(s.data)}</span>
       <input class="form-input spesa-desc" value="${escapeHtml(s.testo)}" placeholder="Descrizione" oninput="updateSpesaFattura('${s.id}','testo',this.value)">
-      <div class="spesa-imp"><input class="form-input" type="number" step="1" value="${s.importo||''}" placeholder="es. 2000" oninput="updateSpesaFattura('${s.id}','importo',this.value)"><span>€</span></div>
+      <div class="spesa-imp"><input class="form-input" type="number" step="0.5" value="${s.importo||''}" placeholder="es. 2" oninput="updateSpesaFattura('${s.id}','importo',this.value)"><span>k€</span></div>
       <button class="cli-del" onclick="deleteSpesaFattura('${s.id}')">🗑</button>
     </div>`).join('') : '<div style="font-size:.8rem;color:var(--muted);padding:4px 0">Nessuna spesa.</div>';
   h += `<button class="add-wide" style="margin-top:8px" onclick="addSpesaFattura()">＋ Aggiungi spesa</button>`;
@@ -1650,13 +1663,13 @@ function renderReportNoleggio(f){
   h += `<div style="margin:10px 0 4px;font-weight:700;color:var(--navy)">Spese macchina</div>`;
   h += speList.length ? speList.map(s=>`<div style="display:flex;justify-content:space-between;font-size:.82rem;padding:3px 0">
       <span>${fmtSpDate(s.data)} ${escapeHtml(s.testo||'')}</span>
-      <span style="font-weight:700;font-family:'Barlow Condensed',sans-serif">${euroFmt(parseFloat(s.importo)||0)}</span></div>`).join('')
+      <span style="font-weight:700;font-family:'Barlow Condensed',sans-serif">${eurK(s.importo)}</span></div>`).join('')
       : '<div style="font-size:.8rem;color:var(--muted)">Nessuna spesa. Aggiungile dalla macchina a stock.</div>';
-  h += reportRow('Totale spese', euroFmt(speE), {border:true, bold:true});
+  h += reportRow('Totale spese', eurK(speE), {border:true, bold:true});
   return h;
 }
-// spese on the SALE invoice (machine already out of stock)
-function recalcFatturaSpese(f){ if(Array.isArray(f.speseList)) f.spe = f.speseList.reduce((s,x)=>s+(parseFloat(x.importo)||0),0)/1000; }
+// spese on the SALE invoice (machine already out of stock) — in k€
+function recalcFatturaSpese(f){ if(Array.isArray(f.speseList)) f.spe = f.speseList.reduce((s,x)=>s+(parseFloat(x.importo)||0),0); }
 function addSpesaFattura(){
   const f = db.fatture.find(x=>x.id===_reportId); if(!f) return;
   if(!Array.isArray(f.speseList)) f.speseList=[];
@@ -1704,11 +1717,10 @@ function cycleStato(id){
   m.stato = seq[(i+1) % seq.length];
   save(); renderStock();
 }
-// Spese list: m.speseList = [{id, data, testo, importo(FULL EUROS)}]; m.spe = sum/1000 (k).
+// Spese list: m.speseList = [{id, data, testo, importo(k€)}]; m.spe = sum (k).
 function recalcSpese(m) {
   if (Array.isArray(m.speseList)) {
-    const eur = m.speseList.reduce((s,x) => s + (parseFloat(x.importo)||0), 0);
-    m.spe = eur / 1000;
+    m.spe = m.speseList.reduce((s,x) => s + (parseFloat(x.importo)||0), 0);
   }
 }
 let _speseMid = null;
@@ -1718,7 +1730,7 @@ function openSpese(mid){
   if(!Array.isArray(m.speseList)) m.speseList = [];
   // migrate a pre-existing manual "spe" value into the list so it isn't lost
   if(!m.speseList.length && (parseFloat(m.spe)||0) > 0){
-    m.speseList.push({id:'sp'+Date.now(), data:new Date().toISOString().split('T')[0], testo:'Spesa iniziale', importo: Math.round((parseFloat(m.spe)||0)*1000)});
+    m.speseList.push({id:'sp'+Date.now(), data:new Date().toISOString().split('T')[0], testo:'Spesa iniziale', importo: parseFloat(m.spe)||0});
   }
   document.getElementById('spese-machine-name').textContent = (m.brand? m.brand+' ':'') + (m.modello||'');
   renderSpeseList();
@@ -1736,12 +1748,12 @@ function renderSpeseList(){
       <div class="spesa-row" data-sid="${s.id}">
         <span class="spesa-date">${fmtSpDate(s.data)}</span>
         <input class="form-input spesa-desc" value="${escapeHtml(s.testo)}" placeholder="Descrizione" oninput="updateSpesaVoce('${s.id}','testo',this.value)">
-        <div class="spesa-imp"><input class="form-input" type="number" inputmode="decimal" step="1" value="${s.importo||''}" placeholder="es. 2000" oninput="updateSpesaVoce('${s.id}','importo',this.value)"><span>\u20AC</span></div>
+        <div class="spesa-imp"><input class="form-input" type="number" inputmode="decimal" step="0.5" value="${s.importo||''}" placeholder="es. 2" oninput="updateSpesaVoce('${s.id}','importo',this.value)"><span>k\u20AC</span></div>
         <button class="cli-del" onclick="deleteSpesaVoce('${s.id}')" title="Elimina">🗑</button>
       </div>`).join('');
   }
   recalcSpese(m);
-  document.getElementById('spese-tot').textContent = eurK(m.spe);
+  document.getElementById('spese-tot').textContent = '€ ' + (Math.round((m.spe||0)*10)/10) + 'k';
 }
 function addSpesaVoce(){
   const m = db.macchine.find(x=>x.id===_speseMid); if(!m) return;
@@ -1754,7 +1766,7 @@ function updateSpesaVoce(sid, field, val){
   const s = (m.speseList||[]).find(x=>x.id===sid); if(!s) return;
   s[field] = field==='importo' ? (parseFloat(val)||0) : val;
   recalcSpese(m);
-  document.getElementById('spese-tot').textContent = eurK(m.spe);
+  document.getElementById('spese-tot').textContent = '€ ' + (Math.round((m.spe||0)*10)/10) + 'k';
   if (typeof syncVubMacchina === 'function') syncVubMacchina(m);
   updateStockStats();
   clearTimeout(window._spSave); window._spSave=setTimeout(()=>save(),500);
