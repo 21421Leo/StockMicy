@@ -767,24 +767,34 @@ header{box-shadow:0 1px 0 var(--border),0 2px 8px rgba(0,0,0,.04)}
 <div class="overlay" id="add-overlay">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">🚜 Aggiungi macchina</div>
-    <div class="form-row">
-      <div class="form-label">Modello *</div>
-      <input class="form-input" id="add-modello" placeholder="es. Cat 988K 2023" onkeydown="if(event.key==='Enter')confirmAdd()">
+    <div class="modal-title">🏗 Aggiungi macchina</div>
+    <div class="form-grid">
+      <div class="form-row"><div class="form-label">Brand</div><input class="form-input" id="add-brand" placeholder="es. Caterpillar"></div>
+      <div class="form-row"><div class="form-label">Modello *</div><input class="form-input" id="add-modello" placeholder="es. 988K"></div>
     </div>
     <div class="form-grid">
-      <div class="form-row">
-        <div class="form-label">Acquisto (k€)</div>
-        <input class="form-input" id="add-acq" type="number" inputmode="decimal" step="0.5" placeholder="es. 120">
-      </div>
-      <div class="form-row">
-        <div class="form-label">Spese (k€)</div>
-        <input class="form-input" id="add-spe" type="number" inputmode="decimal" step="0.5" placeholder="0">
-      </div>
+      <div class="form-row"><div class="form-label">Anno</div><input class="form-input" id="add-anno" inputmode="numeric" placeholder="es. 2017"></div>
+      <div class="form-row"><div class="form-label">Ore</div><input class="form-input" id="add-ore" type="number" inputmode="numeric" placeholder="es. 8500"></div>
     </div>
-    <div class="modal-actions">
-      <button class="modal-btn save" onclick="confirmAdd()">✅ Aggiungi</button>
-      <button class="modal-btn cancel" onclick="closeAddModal()">Annulla</button>
+    <div class="form-row">
+      <div class="form-label">VIN / Serial</div>
+      <input class="form-input" id="add-vin" placeholder="es. TWX01379" style="font-family:monospace">
+    </div>
+    <div class="form-row">
+      <div class="form-label">Location</div>
+      <input class="form-input" id="add-location" placeholder="es. Antwerpen port">
+    </div>
+    <div class="form-grid">
+      <div class="form-row"><div class="form-label">Acquisto (k€)</div><input class="form-input" id="add-acq" type="number" inputmode="decimal" step="0.5" placeholder="es. 120"></div>
+      <div class="form-row"><div class="form-label">Spese (k€)</div><input class="form-input" id="add-spe" type="number" inputmode="decimal" step="0.5" placeholder="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-label">Note</div>
+      <input class="form-input" id="add-note" placeholder="Facoltativo">
+    </div>
+    <div class="modal-actions" style="flex-direction:column;gap:8px">
+      <button class="modal-btn save" style="width:100%" onclick="confirmAdd()">✅ Aggiungi macchina</button>
+      <button class="modal-btn cancel" style="width:100%" onclick="closeAddModal()">Annulla</button>
     </div>
   </div>
 </div>
@@ -1785,11 +1795,9 @@ function handleAdd() {
   openAddModal();
 }
 function openAddModal() {
-  document.getElementById('add-modello').value = '';
-  document.getElementById('add-acq').value = '';
-  document.getElementById('add-spe').value = '';
+  ['add-brand','add-modello','add-anno','add-ore','add-vin','add-location','add-acq','add-spe','add-note'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('add-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('add-modello').focus(), 150);
+  setTimeout(() => document.getElementById('add-brand').focus(), 150);
 }
 function closeAddModal() { document.getElementById('add-overlay').classList.remove('open'); }
 function confirmAdd() {
@@ -1797,12 +1805,17 @@ function confirmAdd() {
   if (!modello) { toast('⚠️ Inserisci il modello', 'err'); return; }
   const m = {
     id: 'm' + Date.now(),
-    brand: '', modello,
-    anno: '', ore: '', vin: '',
+    brand: document.getElementById('add-brand').value.trim(),
+    modello,
+    anno: document.getElementById('add-anno').value.trim(),
+    ore: document.getElementById('add-ore').value.trim(),
+    vin: document.getElementById('add-vin').value.trim(),
+    location: document.getElementById('add-location').value.trim(),
     acq: parseFloat(document.getElementById('add-acq').value) || 0,
     spe: parseFloat(document.getElementById('add-spe').value) || 0,
     speseList: [],
-    stato: 'Disponibile', note: '', location: '',
+    stato: 'Disponibile',
+    note: document.getElementById('add-note').value.trim(),
     _vubAddebito: 0
   };
   db.macchine.push(m);
